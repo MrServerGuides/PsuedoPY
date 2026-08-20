@@ -5,7 +5,7 @@ import io
 import json
 import tokenize
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Set, Optional
+from typing import Dict, List, NamedTuple, Optional, Set
 from enum import Enum
 
 from psuedopy.source_map import SourceMap
@@ -15,15 +15,18 @@ class TranspilerError(Exception):
     pass
 
 
-class KeywordCategory(Enum):
-    """Categories for different types of keywords in the grammar."""
-    STATEMENT_START = "statement_start"  # Print, Display, etc.
-    CONTROL_FLOW = "control_flow"        # If, While, For, etc.
-    DECLARATION = "declaration"           # Function, Class, etc.
-    IMPORT = "import"                     # Import, From, etc.
-    LITERAL = "literal"                   # True, False, None, etc.
-    OPERATOR = "operator"                 # and, or, not, etc.
-    SYNTAX_MARKER = "syntax_marker"       # End, Then, Let, Set, etc.
+class KeywordContext(Enum):
+    """Syntactic contexts where keywords may appear."""
+    ATTRIBUTE = "attribute"           # obj.Print → do not translate
+    ASSIGNMENT_TARGET = "assignment"  # Print = 123 → do not translate
+    DICT_KEY = "dict_key"             # {"Print": ...} → do not translate (strings)
+    STATEMENT_START = "statement"     # Print(...) at line start → translate
+    CONTROL_FLOW = "control_flow"     # If, While, For → translate
+    DECLARATION = "declaration"       # Function, Class → translate
+    OPERATOR = "operator"             # and, or, not → translate
+    LITERAL = "literal"               # True, False, None → translate
+    IMPORT = "import"                 # Import, From → translate
+    OTHER = "other"                   # Unknown context
 
 
 class _Replacement(NamedTuple):
@@ -41,12 +44,14 @@ class TranslatedSource(NamedTuple):
 class Transpiler:
     """
     Context-aware transpiler for PsuedoPY.
-    
+
     Transforms PsuedoPY syntax to Python while preserving:
     - Attribute access (obj.Print() stays unchanged)
     - Variable assignments (Print = 123 stays unchanged)
     - String literals and comments
     - Normal Python code
+    - Imports and module names
+    - Dictionary keys
     """
 
     _BLOCK_OPENERS = {
@@ -107,35 +112,35 @@ class Transpiler:
 
     def _categorize_keywords(self) -> None:
         """Build keyword category lookup from grammar map."""
-        self.keyword_categories: Dict[str, KeywordCategory] = {}
+        self.keyword_categories: Dict[str, KeywordContext] = {}
         
         for keyword in self._STATEMENT_START_KEYWORDS:
             if keyword in self.grammar_map:
-                self.keyword_categories[keyword] = KeywordCategory.STATEMENT_START
+                self.keyword_categories[keyword] = KeywordContext.STATEMENT_START
         
         for keyword in self._CONTROL_FLOW_KEYWORDS:
             if keyword in self.grammar_map:
-                self.keyword_categories[keyword] = KeywordCategory.CONTROL_FLOW
+                self.keyword_categories[keyword] = KeywordContext.CONTROL_FLOW
         
         for keyword in self._DECLARATION_KEYWORDS:
             if keyword in self.grammar_map:
-                self.keyword_categories[keyword] = KeywordCategory.DECLARATION
+                self.keyword_categories[keyword] = KeywordContext.DECLARATION
         
         for keyword in self._IMPORT_KEYWORDS:
             if keyword in self.grammar_map:
-                self.keyword_categories[keyword] = KeywordCategory.IMPORT
+                self.keyword_categories[keyword] = KeywordContext.IMPORT
         
         for keyword in self._LITERAL_KEYWORDS:
             if keyword in self.grammar_map:
-                self.keyword_categories[keyword] = KeywordCategory.LITERAL
+                self.keyword_categories[keyword] = KeywordContext.LITERAL
         
         for keyword in self._OPERATOR_KEYWORDS:
             if keyword in self.grammar_map:
-                self.keyword_categories[keyword] = KeywordCategory.OPERATOR
+                self.keyword_categories[keyword] = KeywordContext.OPERATOR
         
         for keyword in self._SYNTAX_MARKERS:
             if keyword in self.grammar_map:
-                self.keyword_categories[keyword] = KeywordCategory.SYNTAX_MARKER
+                self.keyword_categories[keyword] = KeywordContext.STATEMENT_START
 
     @staticmethod
     def _load_grammar(path: str | Path) -> Dict[str, str]:
@@ -151,6 +156,8 @@ class Transpiler:
         
         This detects attribute access like obj.Print()
         Attribute access should NOT be transformed.
+        
+        Also checks for indexing like obj[...].Print()
         """
         if not tokens_up_to:
             return False
@@ -159,9 +166,13 @@ class Transpiler:
         for token in reversed(tokens_up_to):
             if token.type in (tokenize.INDENT, tokenize.DEDENT, 
                              tokenize.NEWLINE, tokenize.NL,
-                             tokenize.ERRORTOKEN):
+                             tokenize.ERRORTOKEN, tokenize.COMMENT):
                 continue
-            return token.type == tokenize.DOT
+            # Attribute access: preceded by dot
+            if token.type == tokenize.DOT:
+                return True
+            # If we hit something else substantial, not an attribute
+            return False
         
         return False
 
@@ -179,17 +190,77 @@ class Transpiler:
         if token_index >= len(token_list) - 1:
             return False
         
-        # Look ahead for '=' sign (skipping whitespace)
-        for i in range(token_index + 1, min(token_index + 3, len(token_list))):
+        # Look ahead for '=' sign (skipping whitespace/newlines)
+        for i in range(token_index + 1, min(token_index + 5, len(token_list))):
             tok = token_list[i]
             if tok.type == tokenize.OP and tok.string == "=":
                 # Make sure it's not ==, !=, <=, >=
-                return True
+                # (they are single = in tokenization)
+                if i + 1 < len(token_list) and token_list[i + 1].string != "=":
+                    return True
+                return tok.string == "="
             elif tok.type not in (tokenize.INDENT, tokenize.DEDENT, 
-                                 tokenize.NL, tokenize.NEWLINE):
+                                 tokenize.NL, tokenize.NEWLINE,
+                                 tokenize.COMMENT):
+                # Hit something else - not an assignment
                 break
         
         return False
+
+    def _is_in_import_statement(self, token_list: List, token_index: int) -> bool:
+        """
+        Check if a NAME token is part of an import statement context.
+        
+        Examples where we should NOT translate:
+        - from package import Print  (Print is imported name, not keyword)
+        - import package.Print        (Print is module name, not keyword)
+        - from package.Print import x (Print is module path)
+        
+        Only the actual import keywords (Import, From) should be translated.
+        """
+        if token_index == 0:
+            return False
+        
+        # Look backwards for "import" or "from" keyword
+        for i in range(token_index - 1, max(0, token_index - 10), -1):
+            tok = token_list[i]
+            if tok.type == tokenize.NAME:
+                if tok.string in ("import", "from"):
+                    # We're in an import context
+                    # But only translate if THIS token is the keyword itself
+                    # not a module/name that follows it
+                    return True
+                # If we hit another keyword/name that's not import, stop looking
+                if tok.string not in ("as",):
+                    return True
+            elif tok.type == tokenize.NEWLINE:
+                # We've crossed a line boundary, stop searching
+                break
+        
+        return False
+
+    def _is_import_keyword_itself(self, token_list: List, token_index: int, 
+                                 token_string: str) -> bool:
+        """
+        Check if a token is actually an import keyword (Import/From)
+        vs a module name following it.
+        """
+        if token_string not in ("Import", "From"):
+            return False
+        
+        # Look backwards - if we hit another NAME before this, skip
+        for i in range(token_index - 1, max(0, token_index - 3), -1):
+            tok = token_list[i]
+            if tok.type in (tokenize.INDENT, tokenize.DEDENT, 
+                           tokenize.NL, tokenize.NEWLINE,
+                           tokenize.COMMENT):
+                continue
+            if tok.type == tokenize.NAME:
+                # Another name before us - we're not the keyword
+                return False
+            break
+        
+        return True
 
     def _get_statement_context(self, line: str, token_col: int) -> bool:
         """
@@ -218,12 +289,14 @@ class Transpiler:
         Returns False if:
         - The keyword is used as an attribute (after .)
         - The keyword is an assignment target
-        - The keyword appears in a non-statement context
+        - The keyword is a module/package name in an import
+        - The keyword appears in a non-statement context for statement keywords
         
         Returns True if:
         - The keyword is a statement start (Print, If, While, etc.)
         - The keyword is an operator (and, or, not)
         - The keyword is a literal value (True, False, None)
+        - The keyword is an import/declaration keyword at statement start
         """
         keyword = token.string
         
@@ -232,25 +305,30 @@ class Transpiler:
         if category is None:
             return False
         
-        # Check if it's after a dot (attribute access)
+        # FIRST: Check if it's after a dot (attribute access)
+        # This takes precedence over everything else
         if self._is_after_dot(all_tokens[:token_index]):
             return False
         
-        # Check if it's an assignment target
+        # SECOND: Check if it's an assignment target
         if self._is_assignment_target(all_tokens, token_index):
             return False
         
-        # For statement start keywords, check column position
-        if category == KeywordCategory.STATEMENT_START:
+        # THIRD: Special handling for import keywords
+        if category == KeywordContext.IMPORT:
+            # Import/From keywords should only be translated if they're the keyword itself
+            # not a module name following them
+            return self._is_import_keyword_itself(all_tokens, token_index, keyword)
+        
+        # FOURTH: For statement start keywords, check column position
+        if category == KeywordContext.STATEMENT_START:
             # Statement keywords should only be at statement start
             return self._get_statement_context(line, token.start[1])
         
-        # Operators, literals, and other contexts can be transformed
-        if category in (KeywordCategory.OPERATOR, KeywordCategory.LITERAL,
-                       KeywordCategory.CONTROL_FLOW, KeywordCategory.DECLARATION,
-                       KeywordCategory.IMPORT, KeywordCategory.SYNTAX_MARKER):
-            # For these, we still need to avoid attribute access
-            # But statement structure is already checked above
+        # Operators, literals, control flow, declaration, syntax markers
+        # can be transformed (they're safe to translate outside statement start)
+        if category in (KeywordContext.OPERATOR, KeywordContext.LITERAL,
+                       KeywordContext.CONTROL_FLOW, KeywordContext.DECLARATION):
             return True
         
         return False
