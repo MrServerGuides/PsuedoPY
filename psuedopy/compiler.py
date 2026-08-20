@@ -9,6 +9,7 @@ from typing import Any, Optional
 from psuedopy.transpiler import Transpiler, TranslatedSource
 
 class CompilerError(Exception):
+    pass
 
 class Compiler:
 
