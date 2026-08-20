@@ -97,6 +97,7 @@ class _Replacement(NamedTuple):
 
 
 class FormatterError(Exception):
+    pass
 
 
 class PsuedoPYFormatter:
