@@ -21,7 +21,7 @@ dev = [
 ]
 
 [project.scripts]
-psuedopy = "psuedopy.cli:main"
+ppyx = "psuedopy.cli:main"
 
 [tool.setuptools]
 packages = ["psuedopy", "psuedopy.data"]
