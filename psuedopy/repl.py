@@ -80,4 +80,4 @@ class PsuedoPYRepl:
                 code = compile(translated.python_code, "<psuedopy-repl>", "exec")
                 exec(code, self.namespace)
             except Exception as exc:
-                print_ppy_error(exc, translated.source_map if 'translated' in locals() else self.transpiler.translate(source).source_map)
+                print_ppy_error(exc, translated.source_map)
