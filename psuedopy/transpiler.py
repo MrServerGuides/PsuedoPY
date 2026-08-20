@@ -11,6 +11,7 @@ from psuedopy.source_map import SourceMap
 
 
 class TranspilerError(Exception):
+    pass
 
 
 class _Replacement(NamedTuple):
