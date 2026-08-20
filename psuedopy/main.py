@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 import sys
 from typing import List
+from pathlib import Path
+import warnings
 
 _RE_SINGLE_COMMENT = re.compile(r'//(.*)$')
 _RE_MULTI_COMMENT_START = re.compile(r'/\*')
@@ -293,6 +295,54 @@ def main():
         sys.exit(2)
     path = sys.argv[2]
     run_file(path)
+
+# Compatibility wrappers (thin) so the CLI and external code that expects these
+# symbols on psuedopy.main keep working. These delegate to the modern modules.
+# We use relative imports so this module remains a self-contained compatibility layer.
+
+def _warn_deprecation() -> None:
+    # DeprecationWarning is ignored by default when running as a script, so
+    # also print to stderr to make the message visible to users running the CLI.
+    warnings.warn(
+        "psuedopy.main compatibility wrappers are deprecated; import directly from the specific modules",
+        DeprecationWarning,
+    )
+    print(
+        "Warning: using psuedopy.main compatibility wrappers; prefer psuedopy.compiler, psuedopy.formatter, and psuedopy.repl",
+        file=sys.stderr,
+    )
+
+# Local imports for compatibility functions
+from .compiler import Compiler  # type: ignore
+from .formatter import PsuedoPYFormatter  # type: ignore
+from .repl import PsuedoPYRepl  # type: ignore
+
+def compile_ppy_file(src_path: str, output_path: str | None = None) -> Path:
+    """Compile a .ppy source file to a .cppy file.
+
+    Thin compatibility wrapper delegating to psuedopy.compiler.Compiler.write_compiled.
+    """
+    _warn_deprecation()
+    src = Path(src_path)
+    source = src.read_text(encoding="utf-8")
+    compiler = Compiler()
+    out = output_path or str(src.with_suffix(".cppy"))
+    return compiler.write_compiled(source, out, filename=str(src))
+
+def format_ppy_file(path: str) -> None:
+    """Format a .ppy file in-place using the existing formatter (compat wrapper)."""
+    _warn_deprecation()
+    PsuedoPYFormatter().format_file(path)
+
+def run_ppy_file(path: str) -> None:
+    """Run a .ppy file in the current interpreter by transpiling then executing it."""
+    _warn_deprecation()
+    run_file(path)
+
+def start_repl() -> None:
+    """Start the interactive PsuedoPY REPL (compat wrapper)."""
+    _warn_deprecation()
+    PsuedoPYRepl().run()
 
 if __name__ == '__main__':
     main()
