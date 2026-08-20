@@ -1,0 +1,147 @@
+PSUEDOPY INSTALLATION GUIDE
+===========================
+
+Follow these steps to install PsuedoPY.
+
+---
+
+STEP 1: INSTALL PYTHON
+-----------------------
+
+Make sure you have Python installed.
+
+Recommended versions:
+
+    Python 3.10, 3.11, or 3.12
+
+Check your Python version:
+
+    python --version
+
+Or on some systems:
+
+    python3 --version
+
+If Python is not installed, download it from:
+
+    https://www.python.org/downloads/
+
+During installation on Windows, check the box:
+
+    [x] Add Python to PATH
+
+---
+
+STEP 2: OPEN A TERMINAL
+------------------------
+
+Windows:
+
+    Open Command Prompt or PowerShell.
+
+macOS / Linux:
+
+    Open Terminal.
+
+---
+
+STEP 3: GO TO THE PROJECT FOLDER
+--------------------------------
+
+Example:
+
+    cd psuedopy
+
+Make sure you can see the project files:
+
+    ls
+
+On Windows:
+
+    dir
+
+---
+
+STEP 4: CREATE A VIRTUAL ENVIRONMENT
+------------------------------------
+
+A virtual environment keeps packages clean.
+
+Windows:
+
+    python -m venv venv
+    venv\Scripts\activate
+
+macOS / Linux:
+
+    python3 -m venv venv
+    source venv/bin/activate
+
+---
+
+STEP 5: INSTALL PSUEDOPY
+------------------------
+
+Make sure you are inside the project folder, then run:
+
+    pip install -e .
+
+The `-e` means editable mode. You can change the source code and the
+changes will be used immediately.
+
+---
+
+STEP 6: CHECK IF IT WORKED
+--------------------------
+
+Run:
+
+    psuedopy --version
+
+You should see the PsuedoPY version number.
+
+---
+
+STEP 7: TRY THE REPL
+--------------------
+
+Run:
+
+    psuedopy repl
+
+Then type:
+
+    Text("I installed PsuedoPY!")
+
+You should see:
+
+    I installed PsuedoPY!
+
+---
+
+COMMON PROBLEMS
+---------------
+
+Problem: `psuedopy` is not recognized
+
+Solution:
+
+Make sure you activated the virtual environment.
+
+Or install again:
+
+    pip install -e .
+
+---
+
+Problem: `pip` is not recognized
+
+Solution:
+
+Use:
+
+    python -m pip install -e .
+
+---
+
+You are now ready to use PsuedoPY.

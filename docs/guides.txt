@@ -1,0 +1,148 @@
+PSUEDOPY BEGINNER GUIDE
+=======================
+1. WHAT IS PROGRAMMING?
+-----------------------
+
+Programming is giving instructions to a computer.
+
+PsuedoPY makes those instructions easier to read.
+
+---
+
+2. YOUR FIRST PROGRAM
+---------------------
+
+Create a file named `first.ppy`.
+
+Write this inside:
+
+    Text("Hello, BSIT 1st Year!")
+
+Run it:
+
+    psuedopy run first.ppy
+
+Output:
+
+    Hello, BSIT 1st Year!
+
+---
+
+3. VARIABLES
+------------
+
+A variable stores data.
+
+PsuedoPY example:
+
+    Let name = "Juan"
+    Let age = 19
+    Text(name)
+    Text(age)
+
+---
+
+4. USER INPUT
+-------------
+
+Ask the user for information.
+
+    Let city = Ask("Where do you live? ")
+    Text("You live in " + city)
+
+---
+
+5. CONDITIONS
+-------------
+
+Make decisions using `When`.
+
+    Let grade = 75
+
+    When grade >= 75
+        Text("Passed")
+    Otherwise
+        Text("Failed")
+    End
+
+---
+
+6. FUNCTIONS
+------------
+
+A function is a reusable block of code.
+
+    Function greet(name)
+        Text("Hello, " + name)
+    End
+
+    greet("Maria")
+    greet("Pedro")
+
+---
+
+7. LOOPS
+--------
+
+Repeat actions.
+
+    Repeat i = 1 to 3
+        Text("Hello")
+    End
+
+Output:
+
+    Hello
+    Hello
+    Hello
+
+---
+
+8. WHILE LOOPS
+--------------
+
+Repeat while a condition is true.
+
+    Let counter = 1
+
+    While counter <= 3
+        Text(counter)
+        counter = counter + 1
+    End
+
+Output:
+
+    1
+    2
+    3
+
+---
+
+9. INSTALLING PACKAGES
+----------------------
+
+You can use Python packages inside PsuedoPY.
+
+Example using `colorama`:
+
+    install colorama
+
+Then:
+
+    From colorama Import Fore
+    Text(Fore.GREEN + "Success!")
+
+---
+
+10. NEXT STEPS
+--------------
+
+Try these:
+
+- Create a calculator using functions
+- Make a login program using input and conditions
+- Create a counting program using loops
+- Install `requests` and fetch a website
+
+Keep your code simple first. Understanding basics is more important
+than memorizing many keywords.

@@ -1,0 +1,129 @@
+
+---
+
+Documentation
+
+PSUEDOPY DOCUMENTATION
+======================
+
+PsuedoPY is a simple language that compiles to Python.
+
+When you write PsuedoPY code, a tool called a transpiler converts it
+into normal Python code. Then Python executes the result.
+
+This means PsuedoPY is not a separate runtime. It is a friendly layer
+on top of Python.
+
+---
+
+FILE EXTENSION
+--------------
+
+PsuedoPY source files use the extension:
+
+    .ppy
+
+Example:
+
+    hello.ppy
+
+---
+
+LANGUAGE BASICS
+---------------
+
+Print text:
+
+    Text("Hello")
+
+Ask for input:
+
+    Let name = Ask("Enter your name: ")
+
+Functions:
+
+    Function add(a, b)
+        Return a + b
+    End
+
+Conditions:
+
+    When x > 10
+        Text("Big number")
+    Otherwise
+        Text("Small number")
+    End
+
+Loops:
+
+    Repeat i = 1 to 5
+        Text(i)
+
+While loop:
+
+    While x < 10
+        x = x + 1
+    End
+
+---
+
+SPECIAL KEYWORDS
+----------------
+
+The grammar map translates PsuedoPY keywords into Python.
+
+Common mappings:
+
+    Text        -> print
+    Ask         -> input
+    Function    -> def
+    When        -> if
+    Otherwise   -> else
+    Repeat      -> for
+    End         -> blank line / block ending marker
+    Let         -> removed, used like "Let x = 5"
+    Set         -> removed, used like "Set x = 5"
+
+---
+
+COMPILER
+--------
+
+Compile a .ppy file into .cppy bytecode:
+
+    psuedopy compile hello.ppy
+
+The output file is:
+
+    hello.cppy
+
+---
+
+PACKAGE INSTALLATION
+--------------------
+
+From the REPL:
+
+    install requests
+
+From the terminal:
+
+    psuedopy install requests
+
+This safely runs:
+
+    python -m pip install requests
+
+---
+
+ERROR HANDLING
+--------------
+
+When an error occurs, PsuedoPY shows the original .ppy line number
+instead of confusing generated Python code.
+
+Example:
+
+    PsuedoPY Error: NameError: name 'x' is not defined
+      File "hello.ppy", line 3
+        Text(x)
