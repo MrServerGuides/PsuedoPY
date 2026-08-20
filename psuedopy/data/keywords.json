@@ -1,0 +1,542 @@
+{
+  "version": "1.0",
+  "description": "Authoritative PsuedoPY grammar definition. Both transpiler and formatter derive keyword behavior from this file.",
+  "keywords": {
+    "And": {
+      "python_target": "and",
+      "category": "operator",
+      "canonical": "And",
+      "description": "Logical AND operator"
+    },
+    "Ask": {
+      "python_target": "input",
+      "category": "statement_start",
+      "canonical": "Ask",
+      "description": "Read user input (alias: Input, Read, Prompt)"
+    },
+    "As": {
+      "python_target": "as",
+      "category": "import_modifier",
+      "canonical": "As",
+      "description": "Import alias modifier"
+    },
+    "Assert": {
+      "python_target": "assert",
+      "category": "statement",
+      "canonical": "Assert",
+      "description": "Assert statement"
+    },
+    "Async": {
+      "python_target": "async",
+      "category": "declaration",
+      "canonical": "Async",
+      "description": "Async function declaration"
+    },
+    "Await": {
+      "python_target": "await",
+      "category": "operator",
+      "canonical": "Await",
+      "description": "Await expression"
+    },
+    "Break": {
+      "python_target": "break",
+      "category": "statement",
+      "canonical": "Break",
+      "description": "Break from loop"
+    },
+    "Case": {
+      "python_target": "case",
+      "category": "control_flow_mid",
+      "canonical": "Case",
+      "description": "Match case clause"
+    },
+    "Catch": {
+      "python_target": "except",
+      "category": "control_flow_mid",
+      "canonical": "Catch",
+      "aliases": ["Except"],
+      "description": "Exception handler (alias: Except)"
+    },
+    "Check": {
+      "python_target": "assert",
+      "category": "statement",
+      "canonical": "Check",
+      "description": "Check assertion"
+    },
+    "Class": {
+      "python_target": "class",
+      "category": "declaration",
+      "canonical": "Class",
+      "blocks": true,
+      "description": "Class declaration"
+    },
+    "Const": {
+      "python_target": "__EMPTY__",
+      "category": "syntax_marker",
+      "canonical": "Const",
+      "description": "Constant declaration (removed in Python)"
+    },
+    "Continue": {
+      "python_target": "continue",
+      "category": "statement",
+      "canonical": "Continue",
+      "description": "Continue to next loop iteration"
+    },
+    "Declare": {
+      "python_target": "__EMPTY__",
+      "category": "syntax_marker",
+      "canonical": "Declare",
+      "description": "Variable declaration (removed in Python)"
+    },
+    "Define": {
+      "python_target": "def",
+      "category": "declaration",
+      "canonical": "Define",
+      "aliases": ["Func", "Function", "Procedure", "Method"],
+      "blocks": true,
+      "description": "Function definition (alias: Func, Function, Procedure, Method)"
+    },
+    "Def": {
+      "python_target": "def",
+      "category": "declaration",
+      "canonical": "Define",
+      "blocks": true,
+      "description": "Function definition shorthand"
+    },
+    "Del": {
+      "python_target": "del",
+      "category": "statement",
+      "canonical": "Del",
+      "description": "Delete statement"
+    },
+    "Delete": {
+      "python_target": "del",
+      "category": "statement",
+      "canonical": "Del",
+      "description": "Delete statement"
+    },
+    "Display": {
+      "python_target": "print",
+      "category": "statement_start",
+      "canonical": "Text",
+      "aliases": ["Text", "Print", "Write", "Echo", "Output"],
+      "description": "Output/Print statement (canonical: Text)"
+    },
+    "Div": {
+      "python_target": "//",
+      "category": "operator",
+      "canonical": "Div",
+      "description": "Integer division operator"
+    },
+    "Echo": {
+      "python_target": "print",
+      "category": "statement_start",
+      "canonical": "Text",
+      "description": "Output statement (canonical: Text)"
+    },
+    "Elif": {
+      "python_target": "elif",
+      "category": "control_flow_mid",
+      "canonical": "ElseIf",
+      "aliases": ["ElseIf"],
+      "description": "Else-if branch (canonical: ElseIf)"
+    },
+    "ElseIf": {
+      "python_target": "elif",
+      "category": "control_flow_mid",
+      "canonical": "ElseIf",
+      "description": "Else-if branch"
+    },
+    "Else": {
+      "python_target": "else",
+      "category": "control_flow_mid",
+      "canonical": "Otherwise",
+      "aliases": ["Otherwise"],
+      "description": "Else branch (canonical: Otherwise)"
+    },
+    "End": {
+      "python_target": "__END__",
+      "category": "block_end",
+      "canonical": "End",
+      "description": "Block end marker (removed after translation)"
+    },
+    "Except": {
+      "python_target": "except",
+      "category": "control_flow_mid",
+      "canonical": "Catch",
+      "description": "Exception handler"
+    },
+    "False": {
+      "python_target": "False",
+      "category": "literal",
+      "canonical": "False",
+      "description": "Boolean false literal"
+    },
+    "Finally": {
+      "python_target": "finally",
+      "category": "control_flow_mid",
+      "canonical": "Finally",
+      "description": "Try-finally clause"
+    },
+    "For": {
+      "python_target": "for",
+      "category": "control_flow",
+      "canonical": "Repeat",
+      "aliases": ["Repeat"],
+      "blocks": true,
+      "description": "For loop (canonical: Repeat)"
+    },
+    "From": {
+      "python_target": "from",
+      "category": "import",
+      "canonical": "From",
+      "description": "From import statement"
+    },
+    "Func": {
+      "python_target": "def",
+      "category": "declaration",
+      "canonical": "Define",
+      "blocks": true,
+      "description": "Function definition shorthand"
+    },
+    "Function": {
+      "python_target": "def",
+      "category": "declaration",
+      "canonical": "Define",
+      "blocks": true,
+      "description": "Function definition"
+    },
+    "Global": {
+      "python_target": "global",
+      "category": "statement",
+      "canonical": "Global",
+      "description": "Global variable declaration"
+    },
+    "If": {
+      "python_target": "if",
+      "category": "control_flow",
+      "canonical": "When",
+      "aliases": ["When"],
+      "blocks": true,
+      "description": "If conditional (canonical: When)"
+    },
+    "Import": {
+      "python_target": "import",
+      "category": "import",
+      "canonical": "Import",
+      "description": "Import statement"
+    },
+    "In": {
+      "python_target": "in",
+      "category": "operator",
+      "canonical": "In",
+      "description": "Membership test operator"
+    },
+    "Include": {
+      "python_target": "import",
+      "category": "import",
+      "canonical": "Import",
+      "description": "Include/import statement"
+    },
+    "Input": {
+      "python_target": "input",
+      "category": "statement_start",
+      "canonical": "Ask",
+      "description": "User input (canonical: Ask)"
+    },
+    "Is": {
+      "python_target": "is",
+      "category": "operator",
+      "canonical": "Is",
+      "description": "Identity comparison operator"
+    },
+    "Lambda": {
+      "python_target": "lambda",
+      "category": "statement",
+      "canonical": "Lambda",
+      "description": "Lambda function"
+    },
+    "Let": {
+      "python_target": "__EMPTY__",
+      "category": "syntax_marker",
+      "canonical": "Let",
+      "description": "Variable binding (removed in Python)"
+    },
+    "Loop": {
+      "python_target": "while",
+      "category": "control_flow",
+      "canonical": "While",
+      "blocks": true,
+      "description": "Loop construct (canonical: While)"
+    },
+    "Match": {
+      "python_target": "match",
+      "category": "control_flow",
+      "canonical": "Match",
+      "blocks": true,
+      "description": "Match statement (Python 3.10+)"
+    },
+    "Method": {
+      "python_target": "def",
+      "category": "declaration",
+      "canonical": "Define",
+      "blocks": true,
+      "description": "Method definition"
+    },
+    "Mod": {
+      "python_target": "%",
+      "category": "operator",
+      "canonical": "Mod",
+      "description": "Modulo operator"
+    },
+    "No": {
+      "python_target": "False",
+      "category": "literal",
+      "canonical": "False",
+      "description": "Boolean false (alias)"
+    },
+    "Nil": {
+      "python_target": "None",
+      "category": "literal",
+      "canonical": "None",
+      "description": "Null value (alias)"
+    },
+    "Nonlocal": {
+      "python_target": "nonlocal",
+      "category": "statement",
+      "canonical": "Nonlocal",
+      "description": "Nonlocal variable declaration"
+    },
+    "None": {
+      "python_target": "None",
+      "category": "literal",
+      "canonical": "None",
+      "description": "Null value"
+    },
+    "Nothing": {
+      "python_target": "None",
+      "category": "literal",
+      "canonical": "None",
+      "description": "Null value (alias)"
+    },
+    "Not": {
+      "python_target": "not",
+      "category": "operator",
+      "canonical": "Not",
+      "description": "Logical NOT operator"
+    },
+    "Null": {
+      "python_target": "None",
+      "category": "literal",
+      "canonical": "None",
+      "description": "Null value (alias)"
+    },
+    "Off": {
+      "python_target": "False",
+      "category": "literal",
+      "canonical": "False",
+      "description": "Boolean false (alias)"
+    },
+    "On": {
+      "python_target": "True",
+      "category": "literal",
+      "canonical": "True",
+      "description": "Boolean true (alias)"
+    },
+    "Or": {
+      "python_target": "or",
+      "category": "operator",
+      "canonical": "Or",
+      "description": "Logical OR operator"
+    },
+    "Otherwise": {
+      "python_target": "else",
+      "category": "control_flow_mid",
+      "canonical": "Otherwise",
+      "description": "Else branch"
+    },
+    "OtherwiseIf": {
+      "python_target": "elif",
+      "category": "control_flow_mid",
+      "canonical": "ElseIf",
+      "description": "Else-if branch"
+    },
+    "Output": {
+      "python_target": "print",
+      "category": "statement_start",
+      "canonical": "Text",
+      "description": "Output statement (canonical: Text)"
+    },
+    "Pass": {
+      "python_target": "pass",
+      "category": "statement",
+      "canonical": "Pass",
+      "description": "Pass (no-op) statement"
+    },
+    "Pow": {
+      "python_target": "**",
+      "category": "operator",
+      "canonical": "Pow",
+      "description": "Power/exponentiation operator"
+    },
+    "Print": {
+      "python_target": "print",
+      "category": "statement_start",
+      "canonical": "Text",
+      "description": "Print statement (canonical: Text)"
+    },
+    "Procedure": {
+      "python_target": "def",
+      "category": "declaration",
+      "canonical": "Define",
+      "blocks": true,
+      "description": "Procedure definition"
+    },
+    "Prompt": {
+      "python_target": "input",
+      "category": "statement_start",
+      "canonical": "Ask",
+      "description": "Prompt for input (canonical: Ask)"
+    },
+    "Raise": {
+      "python_target": "raise",
+      "category": "statement",
+      "canonical": "Raise",
+      "description": "Raise exception"
+    },
+    "Read": {
+      "python_target": "input",
+      "category": "statement_start",
+      "canonical": "Ask",
+      "description": "Read input (canonical: Ask)"
+    },
+    "Repeat": {
+      "python_target": "for",
+      "category": "control_flow",
+      "canonical": "Repeat",
+      "blocks": true,
+      "description": "For/repeat loop"
+    },
+    "Return": {
+      "python_target": "return",
+      "category": "statement",
+      "canonical": "Return",
+      "description": "Return from function"
+    },
+    "Set": {
+      "python_target": "__EMPTY__",
+      "category": "syntax_marker",
+      "canonical": "Set",
+      "description": "Variable assignment marker (removed in Python)"
+    },
+    "Text": {
+      "python_target": "print",
+      "category": "statement_start",
+      "canonical": "Text",
+      "description": "Output/print statement"
+    },
+    "Then": {
+      "python_target": "__EMPTY__",
+      "category": "syntax_marker",
+      "canonical": "Then",
+      "description": "Conditional marker (removed in Python)"
+    },
+    "This": {
+      "python_target": "self",
+      "category": "literal",
+      "canonical": "This",
+      "description": "Self reference"
+    },
+    "Throw": {
+      "python_target": "raise",
+      "category": "statement",
+      "canonical": "Raise",
+      "description": "Raise exception (alias)"
+    },
+    "True": {
+      "python_target": "True",
+      "category": "literal",
+      "canonical": "True",
+      "description": "Boolean true literal"
+    },
+    "Try": {
+      "python_target": "try",
+      "category": "control_flow",
+      "canonical": "Try",
+      "blocks": true,
+      "description": "Try-except block"
+    },
+    "Use": {
+      "python_target": "import",
+      "category": "import",
+      "canonical": "Import",
+      "description": "Use/import statement"
+    },
+    "Using": {
+      "python_target": "with",
+      "category": "control_flow",
+      "canonical": "Using",
+      "blocks": true,
+      "description": "Context manager statement"
+    },
+    "Var": {
+      "python_target": "__EMPTY__",
+      "category": "syntax_marker",
+      "canonical": "Var",
+      "description": "Variable declaration (removed in Python)"
+    },
+    "When": {
+      "python_target": "if",
+      "category": "control_flow",
+      "canonical": "When",
+      "blocks": true,
+      "description": "If conditional"
+    },
+    "While": {
+      "python_target": "while",
+      "category": "control_flow",
+      "canonical": "While",
+      "blocks": true,
+      "description": "While loop"
+    },
+    "With": {
+      "python_target": "with",
+      "category": "control_flow",
+      "canonical": "Using",
+      "blocks": true,
+      "description": "Context manager"
+    },
+    "Write": {
+      "python_target": "print",
+      "category": "statement_start",
+      "canonical": "Text",
+      "description": "Write/print statement (canonical: Text)"
+    },
+    "Yes": {
+      "python_target": "True",
+      "category": "literal",
+      "canonical": "True",
+      "description": "Boolean true (alias)"
+    },
+    "Yield": {
+      "python_target": "yield",
+      "category": "statement",
+      "canonical": "Yield",
+      "description": "Yield from generator"
+    }
+  },
+  "metadata": {
+    "categories": {
+      "operator": "Binary/unary operators (and, or, not, in, is, etc.)",
+      "statement_start": "Statements that appear at statement start (Text, Ask, etc.)",
+      "statement": "General statements (break, continue, return, etc.)",
+      "control_flow": "Block-opening control flow (if, while, for, try, etc.)",
+      "control_flow_mid": "Mid-block control flow (else, elif, except, etc.)",
+      "declaration": "Declarations (function, class, async, etc.)",
+      "import": "Import statements (import, from)",
+      "import_modifier": "Import modifiers (as)",
+      "literal": "Literal values (true, false, none, self, etc.)",
+      "syntax_marker": "Syntax markers removed in translation (let, set, var, declare, const, then, end)"
+    }
+  }
+}
