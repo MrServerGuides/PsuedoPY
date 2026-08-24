@@ -81,5 +81,21 @@
   "With": "with",
   "Write": "print",
   "Yes": "True",
-  "Yield": "yield"
+  "Yield": "yield",
+  "Default": "case _",
+  "To": "to",
+  "Step": "step",
+  "Times": "times",
+  "Forever": "True",
+  "Length": "len",
+  "Integer": "int",
+  "Decimal": "float",
+  "String": "str",
+  "Boolean": "bool",
+  "Range": "range",
+  "Minimum": "min",
+  "Maximum": "max",
+  "Sum": "sum",
+  "Sorted": "sorted",
+  "TypeOf": "type"
 }

@@ -91,7 +91,7 @@
     "Define": {
       "python_target": "def",
       "category": "declaration",
-      "canonical": "Define",
+      "canonical": "Function",
       "aliases": ["Func", "Function", "Procedure", "Method"],
       "blocks": true,
       "description": "Function definition (alias: Func, Function, Procedure, Method)"
@@ -99,7 +99,7 @@
     "Def": {
       "python_target": "def",
       "category": "declaration",
-      "canonical": "Define",
+      "canonical": "Function",
       "blocks": true,
       "description": "Function definition shorthand"
     },
@@ -195,14 +195,14 @@
     "Func": {
       "python_target": "def",
       "category": "declaration",
-      "canonical": "Define",
+      "canonical": "Function",
       "blocks": true,
       "description": "Function definition shorthand"
     },
     "Function": {
       "python_target": "def",
       "category": "declaration",
-      "canonical": "Define",
+      "canonical": "Function",
       "blocks": true,
       "description": "Function definition"
     },
@@ -279,7 +279,7 @@
     "Method": {
       "python_target": "def",
       "category": "declaration",
-      "canonical": "Define",
+      "canonical": "Function",
       "blocks": true,
       "description": "Method definition"
     },
@@ -388,7 +388,7 @@
     "Procedure": {
       "python_target": "def",
       "category": "declaration",
-      "canonical": "Define",
+      "canonical": "Function",
       "blocks": true,
       "description": "Procedure definition"
     },
@@ -523,6 +523,102 @@
       "category": "statement",
       "canonical": "Yield",
       "description": "Yield from generator"
+    },
+    "Default": {
+      "python_target": "case _",
+      "category": "control_flow_mid",
+      "canonical": "Default",
+      "description": "Default match branch"
+    },
+    "To": {
+      "python_target": "to",
+      "category": "syntax_marker",
+      "canonical": "To",
+      "description": "Inclusive Repeat range separator"
+    },
+    "Step": {
+      "python_target": "step",
+      "category": "syntax_marker",
+      "canonical": "Step",
+      "description": "Repeat range step marker"
+    },
+    "Times": {
+      "python_target": "times",
+      "category": "syntax_marker",
+      "canonical": "Times",
+      "description": "Fixed-count Repeat marker"
+    },
+    "Forever": {
+      "python_target": "True",
+      "category": "syntax_marker",
+      "canonical": "Forever",
+      "description": "Infinite-loop marker"
+    },
+    "Length": {
+      "python_target": "len",
+      "category": "expression",
+      "canonical": "Length",
+      "description": "Length of a collection"
+    },
+    "Integer": {
+      "python_target": "int",
+      "category": "expression",
+      "canonical": "Integer",
+      "description": "Convert a value to an integer"
+    },
+    "Decimal": {
+      "python_target": "float",
+      "category": "expression",
+      "canonical": "Decimal",
+      "description": "Convert a value to a decimal number"
+    },
+    "String": {
+      "python_target": "str",
+      "category": "expression",
+      "canonical": "String",
+      "description": "Convert a value to text"
+    },
+    "Boolean": {
+      "python_target": "bool",
+      "category": "expression",
+      "canonical": "Boolean",
+      "description": "Convert a value to a boolean"
+    },
+    "Range": {
+      "python_target": "range",
+      "category": "expression",
+      "canonical": "Range",
+      "description": "Create an exclusive numeric range"
+    },
+    "Minimum": {
+      "python_target": "min",
+      "category": "expression",
+      "canonical": "Minimum",
+      "description": "Smallest value"
+    },
+    "Maximum": {
+      "python_target": "max",
+      "category": "expression",
+      "canonical": "Maximum",
+      "description": "Largest value"
+    },
+    "Sum": {
+      "python_target": "sum",
+      "category": "expression",
+      "canonical": "Sum",
+      "description": "Sum values"
+    },
+    "Sorted": {
+      "python_target": "sorted",
+      "category": "expression",
+      "canonical": "Sorted",
+      "description": "Return sorted values"
+    },
+    "TypeOf": {
+      "python_target": "type",
+      "category": "expression",
+      "canonical": "TypeOf",
+      "description": "Return a value's type"
     }
   },
   "metadata": {
@@ -536,6 +632,7 @@
       "import": "Import statements (import, from)",
       "import_modifier": "Import modifiers (as)",
       "literal": "Literal values (true, false, none, self, etc.)",
+      "expression": "Friendly built-ins and expression-level aliases",
       "syntax_marker": "Syntax markers removed in translation (let, set, var, declare, const, then, end)"
     }
   }

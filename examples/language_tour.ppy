@@ -1,0 +1,45 @@
+From pathlib Import Path
+Import json
+
+Const OUTPUT_FILE = "psuedopy-demo.json"
+
+Class Student
+    Function __init__(This, name, scores)
+        This.name = name
+        This.scores = scores
+    End
+
+    Function average(This)
+        When Not This.scores
+            Return 0
+        End
+        Return Sum(This.scores) / Length(This.scores)
+    End
+End
+
+Let students = [
+    Student("Ada", [92, 88, 95]),
+    Student("Grace", [100, 97, 99]),
+]
+Let report = {}
+
+Repeat student In students
+    Let average = student.average()
+    Match Integer(average Div 10)
+        Case 10
+            Let rating = "perfect"
+        Case 9
+            Let rating = "excellent"
+        Default
+            Let rating = "developing"
+    End
+    report[student.name] = {"average": average, "rating": rating}
+End
+
+Try
+    Let destination = Path(OUTPUT_FILE)
+    destination.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    Text("Wrote " + String(destination.resolve()))
+Catch OSError As error
+    Text("Could not save report: " + String(error))
+End

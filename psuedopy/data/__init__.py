@@ -1,0 +1,1 @@
+"""Packaged language grammar resources."""

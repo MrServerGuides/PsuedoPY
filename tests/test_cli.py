@@ -1,6 +1,6 @@
-
 from __future__ import annotations
 
+import runpy
 import sys
 import tempfile
 from pathlib import Path
@@ -16,14 +16,14 @@ class TestRunCommand:
 
     def test_run_simple_program(self, monkeypatch):
         """Test running a simple .ppy file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.ppy', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ppy", delete=False) as f:
             f.write('Text("Hello from PsuedoPY")\n')
             f.flush()
             ppy_file = f.name
 
         try:
             monkeypatch.setattr(sys, "argv", ["ppyx", "run", ppy_file])
-            with patch('builtins.print') as mock_print:
+            with patch("builtins.print") as mock_print:
                 main()
                 # The Text(...) should be transpiled to print(...) and executed
                 mock_print.assert_called()
@@ -45,38 +45,40 @@ class TestCompileCommand:
 
     def test_compile_program(self, monkeypatch, capsys):
         """Test compiling a .ppy file to .cppy."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.ppy', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ppy", delete=False) as f:
             f.write('Text("test")\n')
             f.flush()
             ppy_file = f.name
 
         try:
-            cppy_file = ppy_file.replace('.ppy', '.cppy')
+            cppy_file = ppy_file.replace(".ppy", ".cppy")
             monkeypatch.setattr(sys, "argv", ["ppyx", "compile", ppy_file])
             main()
-            
+
             captured = capsys.readouterr()
             assert "Compiled" in captured.out
             assert Path(cppy_file).exists()
-            
+
             Path(cppy_file).unlink()
         finally:
             Path(ppy_file).unlink()
 
     def test_compile_with_output(self, monkeypatch, capsys):
         """Test compiling with explicit output path."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.ppy', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ppy", delete=False) as f:
             f.write('Text("test")\n')
             f.flush()
             ppy_file = f.name
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.cppy', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cppy", delete=False) as f:
             cppy_file = f.name
 
         try:
-            monkeypatch.setattr(sys, "argv", ["ppyx", "compile", ppy_file, "-o", cppy_file])
+            monkeypatch.setattr(
+                sys, "argv", ["ppyx", "compile", ppy_file, "-o", cppy_file]
+            )
             main()
-            
+
             captured = capsys.readouterr()
             assert "Compiled" in captured.out
             assert Path(cppy_file).exists()
@@ -98,21 +100,21 @@ class TestFormatCommand:
 
     def test_format_program(self, monkeypatch, capsys):
         """Test formatting a .ppy file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.ppy', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ppy", delete=False) as f:
             # Use lowercase keywords that should be canonicalized
-            f.write('when x > 5\n')
+            f.write("when x > 5\n")
             f.write('    text("yes")\n')
-            f.write('end\n')
+            f.write("end\n")
             f.flush()
             ppy_file = f.name
 
         try:
             monkeypatch.setattr(sys, "argv", ["ppyx", "format", ppy_file])
             main()
-            
+
             captured = capsys.readouterr()
             assert "Formatted" in captured.out
-            
+
             # Read the formatted file
             content = Path(ppy_file).read_text()
             assert "When" in content  # Should be canonicalized
@@ -132,7 +134,7 @@ class TestCheckCommand:
 
     def test_check_valid_program(self, monkeypatch, capsys):
         """Test checking a valid .ppy file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.ppy', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ppy", delete=False) as f:
             f.write('Text("hello")\n')
             f.flush()
             ppy_file = f.name
@@ -140,7 +142,7 @@ class TestCheckCommand:
         try:
             monkeypatch.setattr(sys, "argv", ["ppyx", "check", ppy_file])
             main()
-            
+
             captured = capsys.readouterr()
             assert "OK" in captured.out
         finally:
@@ -148,9 +150,9 @@ class TestCheckCommand:
 
     def test_check_invalid_program(self, monkeypatch, capsys):
         """Test checking an invalid .ppy file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.ppy', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ppy", delete=False) as f:
             # Invalid Python syntax
-            f.write('x = \n')  # Incomplete statement
+            f.write("x = \n")  # Incomplete statement
             f.flush()
             ppy_file = f.name
 
@@ -178,7 +180,7 @@ class TestReplCommand:
         monkeypatch.setattr(sys, "argv", ["ppyx", "repl"])
         # Mock input to immediately exit
         monkeypatch.setattr("builtins.input", lambda _: "exit")
-        
+
         main()  # Should not raise
 
 
@@ -192,7 +194,7 @@ class TestVersionFlag:
             main()
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
-        assert "0.1.0" in captured.out
+        assert "1.0.0" in captured.out
 
 
 class TestHelpFlag:
@@ -205,5 +207,13 @@ class TestHelpFlag:
             main()
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
-        assert "ppyx" in captured.out.lower()
+        assert "psuedopy" in captured.out.lower()
         assert "run" in captured.out.lower()
+
+
+def test_python_module_entrypoint(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["python -m psuedopy", "--version"])
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_module("psuedopy", run_name="__main__")
+    assert exc_info.value.code == 0
+    assert "1.0.0" in capsys.readouterr().out

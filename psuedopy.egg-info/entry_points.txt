@@ -1,0 +1,4 @@
+[console_scripts]
+ppyx = psuedopy.cli:main
+pseudopy = psuedopy.cli:main
+psuedopy = psuedopy.cli:main

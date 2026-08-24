@@ -1,203 +1,236 @@
-"""
-Wrapper functions that bridge the CLI to the current compiler/transpiler architecture.
-These functions provide a clean interface for the CLI.
-"""
-
 from __future__ import annotations
 
 import sys
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from pathlib import Path
 
-from psuedopy.compiler import Compiler, CompilerError
+from psuedopy.compiler import Compiler
+from psuedopy.errors import CompilerError, FormatterError, TranspilerError
 from psuedopy.exceptions import print_ppy_error
-from psuedopy.formatter import PsuedoPYFormatter, FormatterError
+from psuedopy.formatter import PsuedoPYFormatter
 from psuedopy.repl import PsuedoPYRepl
-from psuedopy.transpiler import TranspilerError
 
 
-def run_ppy_file(file_path: str) -> None:
-    """
-    Read a .ppy file, transpile it, compile it, and execute it.
-    
-    Args:
-        file_path: Path to the .ppy file
-        
-    Raises:
-        SystemExit on file not found or execution errors
-    """
-    path = Path(file_path)
-    
-    if not path.exists():
-        print(f"Error: File '{file_path}' not found.", file=sys.stderr)
-        raise SystemExit(2)
-    
-    if not path.is_file():
-        print(f"Error: '{file_path}' is not a file.", file=sys.stderr)
-        raise SystemExit(2)
-    
+def run_ppy_file(
+    file_path: str,
+    program_args: Sequence[str] | None = None,
+    *,
+    grammar_file: str | Path | None = None,
+    debug: bool = False,
+    color: bool | None = None,
+) -> None:
+    path = _source_path(file_path)
+    compiler = Compiler(grammar_file)
+
+    if path.suffix.casefold() == ".cppy":
+        _run_compiled(path, compiler, program_args, debug=debug, color=color)
+        return
+
+    source = _read_source(path)
+    translated = None
     try:
-        source = path.read_text(encoding='utf-8')
-    except Exception as e:
-        print(f"Error reading file '{file_path}': {e}", file=sys.stderr)
-        raise SystemExit(2)
-    
-    compiler = Compiler()
-    
-    try:
-        # Transpile and compile
         translated = compiler.transpile(source)
-        code_obj = compiler.compile_to_code(source, filename=str(path))
-        
-        # Execute with proper globals/locals
-        globs = {'__name__': '__main__', '__file__': str(path)}
-        exec(code_obj, globs, globs)
-        
-    except TranspilerError as e:
-        print_ppy_error(e, compiler.transpiler.translate(source).source_map)
-        raise SystemExit(1)
-    except CompilerError as e:
-        print(f"Compilation error: {e}", file=sys.stderr)
-        raise SystemExit(1)
-    except Exception as e:
-        # Try to provide context-aware error reporting
+        code = compiler.compile_translated(translated, str(path))
+        namespace = {
+            "__name__": "__main__",
+            "__file__": str(path),
+            "__package__": None,
+        }
+        with _script_environment(path, program_args):
+            exec(code, namespace, namespace)
+    except (TranspilerError, CompilerError) as exc:
+        print_ppy_error(
+            exc,
+            translated.source_map if translated else None,
+            filename=str(path),
+            show_translated=debug,
+            color=color,
+        )
+        raise SystemExit(1) from exc
+    except Exception as exc:
+        print_ppy_error(
+            exc,
+            translated.source_map if translated else None,
+            filename=str(path),
+            show_translated=debug,
+            color=color,
+        )
+        raise SystemExit(1) from exc
+
+
+def compile_ppy_file(
+    input_path: str,
+    output_path: str | None = None,
+    *,
+    grammar_file: str | Path | None = None,
+) -> Path:
+    path = _source_path(input_path)
+    source = _read_source(path)
+    output = Path(output_path) if output_path else path.with_suffix(".cppy")
+    compiler = Compiler(grammar_file)
+    try:
+        result = compiler.write_compiled(source, output, filename=str(path))
+    except (CompilerError, TranspilerError) as exc:
+        print_ppy_error(exc, filename=str(path))
+        raise SystemExit(1) from exc
+    except OSError as exc:
+        print(f"Error writing '{output}': {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
+    print(f"Compiled: {path} -> {result}")
+    return result
+
+
+def transpile_ppy_file(
+    input_path: str,
+    output_path: str | None = None,
+    *,
+    grammar_file: str | Path | None = None,
+) -> Path:
+    path = _source_path(input_path)
+    source = _read_source(path)
+    output = Path(output_path) if output_path else path.with_suffix(".py")
+    compiler = Compiler(grammar_file)
+    try:
+        translated = compiler.transpile(source)
+        compiler.compile_translated(translated, str(path))
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(translated.python_code + "\n", encoding="utf-8", newline="\n")
+    except (CompilerError, TranspilerError) as exc:
+        print_ppy_error(exc, filename=str(path))
+        raise SystemExit(1) from exc
+    except OSError as exc:
+        print(f"Error writing '{output}': {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
+    print(f"Transpiled: {path} -> {output}")
+    return output
+
+
+def format_ppy_file(
+    file_path: str,
+    *,
+    check: bool = False,
+    grammar_file: str | Path | None = None,
+) -> bool:
+    path = _source_path(file_path)
+    source = _read_source(path)
+    formatter = PsuedoPYFormatter(grammar_file)
+    try:
+        formatted = formatter.format(source)
+    except FormatterError as exc:
+        print_ppy_error(exc, filename=str(path))
+        raise SystemExit(1) from exc
+
+    changed = formatted != source
+    if check:
+        if changed:
+            print(f"Needs formatting: {path}", file=sys.stderr)
+            raise SystemExit(1)
+        print(f"Already formatted: {path}")
+        return False
+    if changed:
         try:
-            translated = compiler.transpile(source)
-            print_ppy_error(e, translated.source_map)
-        except:
-            # Fallback: print raw exception
-            print(f"Runtime error: {e}", file=sys.stderr)
-            import traceback
-            traceback.print_exc()
-        raise SystemExit(1)
+            path.write_text(formatted, encoding="utf-8", newline="\n")
+        except OSError as exc:
+            print(f"Error writing '{path}': {exc}", file=sys.stderr)
+            raise SystemExit(2) from exc
+        print(f"Formatted: {path}")
+    else:
+        print(f"Unchanged: {path}")
+    return changed
 
 
-def compile_ppy_file(input_path: str, output_path: str | None = None) -> None:
-    """
-    Compile a .ppy file to a .cppy file.
-    
-    Args:
-        input_path: Path to the .ppy file
-        output_path: Path to write compiled file. Defaults to input with .cppy extension.
-        
-    Raises:
-        SystemExit on file not found or compilation errors
-    """
-    path = Path(input_path)
-    
-    if not path.exists():
-        print(f"Error: File '{input_path}' not found.", file=sys.stderr)
-        raise SystemExit(2)
-    
-    if not path.is_file():
-        print(f"Error: '{input_path}' is not a file.", file=sys.stderr)
-        raise SystemExit(2)
-    
+def check_ppy_file(
+    file_path: str,
+    *,
+    grammar_file: str | Path | None = None,
+) -> None:
+    path = _source_path(file_path)
+    source = _read_source(path)
+    compiler = Compiler(grammar_file)
+    translated = None
     try:
-        source = path.read_text(encoding='utf-8')
-    except Exception as e:
-        print(f"Error reading file '{input_path}': {e}", file=sys.stderr)
-        raise SystemExit(2)
-    
-    # Determine output path
-    if output_path is None:
-        output_path = str(path.with_suffix('.cppy'))
-    
-    compiler = Compiler()
-    
+        translated = compiler.transpile(source)
+        compiler.compile_translated(translated, str(path))
+    except (CompilerError, TranspilerError) as exc:
+        print_ppy_error(
+            exc,
+            translated.source_map if translated else None,
+            filename=str(path),
+        )
+        raise SystemExit(1) from exc
+    print(f"OK: {path}")
+
+
+def start_repl(*, grammar_file: str | Path | None = None) -> None:
+    PsuedoPYRepl(grammar_file).run()
+
+
+def _run_compiled(
+    path: Path,
+    compiler: Compiler,
+    program_args: Sequence[str] | None,
+    *,
+    debug: bool,
+    color: bool | None,
+) -> None:
+    translated = None
     try:
-        output = compiler.write_compiled(source, output_path, filename=str(path))
-        print(f"Compiled: {input_path} -> {output}")
-    except CompilerError as e:
-        print(f"Compilation error: {e}", file=sys.stderr)
-        raise SystemExit(1)
-    except TranspilerError as e:
-        print(f"Transpiler error: {e}", file=sys.stderr)
-        raise SystemExit(1)
-    except Exception as e:
-        print(f"Error compiling file: {e}", file=sys.stderr)
-        raise SystemExit(1)
+        artifact = compiler.load_artifact(path)
+        filename = str(artifact.metadata.get("source_filename", path))
+        translated = compiler.transpile(artifact.original_source)
+        if translated.python_code != artifact.python_code:
+            raise CompilerError(
+                "Compiled artifact does not match this language runtime; rebuild it"
+            )
+        code = compile(artifact.python_code, filename, "exec")
+        namespace = {
+            "__name__": "__main__",
+            "__file__": filename,
+            "__package__": None,
+        }
+        with _script_environment(Path(filename), program_args):
+            exec(code, namespace, namespace)
+    except Exception as exc:
+        print_ppy_error(
+            exc,
+            translated.source_map if translated else None,
+            filename=str(path),
+            show_translated=debug,
+            color=color,
+        )
+        raise SystemExit(1) from exc
 
 
-def format_ppy_file(file_path: str) -> None:
-    """
-    Format a .ppy file in-place using canonical keyword casing and indentation.
-    
-    Args:
-        file_path: Path to the .ppy file
-        
-    Raises:
-        SystemExit on file not found or formatting errors
-    """
-    path = Path(file_path)
-    
-    if not path.exists():
-        print(f"Error: File '{file_path}' not found.", file=sys.stderr)
-        raise SystemExit(2)
-    
-    if not path.is_file():
-        print(f"Error: '{file_path}' is not a file.", file=sys.stderr)
-        raise SystemExit(2)
-    
-    formatter = PsuedoPYFormatter()
-    
-    try:
-        formatter.format_file(path)
-        print(f"Formatted: {file_path}")
-    except FormatterError as e:
-        print(f"Formatting error: {e}", file=sys.stderr)
-        raise SystemExit(1)
-    except Exception as e:
-        print(f"Error formatting file: {e}", file=sys.stderr)
-        raise SystemExit(1)
-
-
-def check_ppy_file(file_path: str) -> None:
-    """
-    Check a .ppy file for syntax errors without running or formatting it.
-    
-    Args:
-        file_path: Path to the .ppy file
-        
-    Raises:
-        SystemExit if there are syntax errors
-    """
-    path = Path(file_path)
-    
+def _source_path(file_path: str) -> Path:
+    path = Path(file_path).expanduser()
     if not path.exists():
         print(f"Error: File '{file_path}' not found.", file=sys.stderr)
         raise SystemExit(2)
-    
     if not path.is_file():
         print(f"Error: '{file_path}' is not a file.", file=sys.stderr)
         raise SystemExit(2)
-    
-    try:
-        source = path.read_text(encoding='utf-8')
-    except Exception as e:
-        print(f"Error reading file '{file_path}': {e}", file=sys.stderr)
-        raise SystemExit(2)
-    
-    compiler = Compiler()
-    
-    try:
-        # Just transpile and compile, don't execute
-        compiler.transpile(source)
-        compiler.compile_to_code(source, filename=str(path))
-        print(f"OK: {file_path}")
-    except CompilerError as e:
-        print(f"Compilation error in {file_path}: {e}", file=sys.stderr)
-        raise SystemExit(1)
-    except TranspilerError as e:
-        print(f"Syntax error in {file_path}: {e}", file=sys.stderr)
-        raise SystemExit(1)
-    except Exception as e:
-        print(f"Error checking file: {e}", file=sys.stderr)
-        raise SystemExit(1)
+    return path.resolve()
 
 
-def start_repl() -> None:
-    """
-    Start the interactive PsuedoPY REPL.
-    """
-    repl = PsuedoPYRepl()
-    repl.run()
+def _read_source(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeError) as exc:
+        print(f"Error reading '{path}': {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
+
+
+@contextmanager
+def _script_environment(
+    path: Path, program_args: Sequence[str] | None
+) -> Iterator[None]:
+    old_argv = sys.argv[:]
+    old_path = sys.path[:]
+    sys.argv = [str(path), *(program_args or [])]
+    sys.path.insert(0, str(path.parent.resolve()))
+    try:
+        yield
+    finally:
+        sys.argv = old_argv
+        sys.path[:] = old_path

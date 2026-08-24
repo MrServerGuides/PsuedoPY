@@ -1,0 +1,6 @@
+Let name = Ask("What is your name? ")
+Text("Hello, " + name + "!")
+
+Repeat number = 1 To 3
+    Text("Count " + String(number))
+End

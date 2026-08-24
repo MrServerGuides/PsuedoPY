@@ -1,15 +1,15 @@
-
 from __future__ import annotations
 
 import subprocess
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from psuedopy.pkg_manager import PackageManager
 
 
 def test_install_runs_pip_install(monkeypatch: MagicMock) -> None:
-    fake = MagicMock(returncode=0, stdout="Installing...\n", stderr="")
+    completed = MagicMock(returncode=0, stdout="Installing...\n", stderr="")
+    fake = MagicMock(return_value=completed)
     monkeypatch.setattr(subprocess, "run", fake)
 
     PackageManager().install("requests")
@@ -24,7 +24,8 @@ def test_install_runs_pip_install(monkeypatch: MagicMock) -> None:
 def test_install_raises_runtime_error_on_pip_failure(
     monkeypatch: MagicMock,
 ) -> None:
-    fake = MagicMock(returncode=1, stdout="", stderr="No matching distribution")
+    completed = MagicMock(returncode=1, stdout="", stderr="No matching distribution")
+    fake = MagicMock(return_value=completed)
     monkeypatch.setattr(subprocess, "run", fake)
 
     try:

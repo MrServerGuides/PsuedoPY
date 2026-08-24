@@ -1,192 +1,248 @@
-
 from __future__ import annotations
 
 import io
-import json
 import tokenize
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, NamedTuple
 
-_CANONICAL_FORMS: Dict[str, str] = {
-    "text": "Text",
-    "print": "Text",
-    "echo": "Text",
-    "write": "Text",
-    "display": "Text",
-    "output": "Text",
-    "ask": "Ask",
-    "input": "Ask",
-    "read": "Ask",
-    "prompt": "Ask",
-    "function": "Function",
-    "def": "Function",
-    "func": "Function",
-    "procedure": "Function",
-    "method": "Function",
-    "when": "When",
-    "if": "When",
-    "otherwise": "Otherwise",
-    "else": "Otherwise",
-    "elseif": "ElseIf",
-    "elif": "ElseIf",
-    "repeat": "Repeat",
-    "for": "Repeat",
-    "while": "While",
-    "loop": "While",
-    "let": "Let",
-    "set": "Set",
-    "var": "Var",
-    "declare": "Declare",
-    "const": "Const",
-    "end": "End",
-    "return": "Return",
-    "class": "Class",
-    "try": "Try",
-    "except": "Except",
-    "catch": "Catch",
-    "finally": "Finally",
-    "with": "With",
-    "using": "Using",
-    "match": "Match",
-    "case": "Case",
-    "import": "Import",
-    "include": "Include",
-    "from": "From",
-    "use": "Use",
-    "true": "True",
-    "false": "False",
-    "yes": "True",
-    "no": "False",
-    "on": "True",
-    "off": "False",
-    "none": "None",
-    "null": "None",
-    "nil": "None",
-    "nothing": "None",
-    "and": "And",
-    "or": "Or",
-    "not": "Not",
-}
-
-_BLOCK_OPENERS = {
-    "Function",
-    "When",
-    "While",
-    "Repeat",
-    "Class",
-    "Try",
-    "With",
-    "Match",
-}
-
-_MIDDLE_BLOCK_KEYWORDS = {
-    "Otherwise",
-    "ElseIf",
-    "Except",
-    "Catch",
-    "Finally",
-    "Case",
-}
+from psuedopy.errors import FormatterError, TranspilerError
+from psuedopy.grammar import Grammar
+from psuedopy.parser import SyntaxParser, multiline_string_continuation_lines
 
 
-class _Replacement(NamedTuple):
-
+@dataclass(frozen=True)
+class _Replacement:
     start: int
     end: int
     text: str
 
 
-class FormatterError(Exception):
-    pass
+@dataclass
+class _FormatFrame:
+    kind: str
+    indent: int
+    body_indent: int
 
 
 class PsuedoPYFormatter:
+    """Canonicalize keyword casing and explicit-End block indentation."""
 
-    def __init__(self) -> None:
-        self._case_lookup = _CANONICAL_FORMS
+    _OPENERS = {
+        "function": "function",
+        "func": "function",
+        "define": "function",
+        "def": "function",
+        "procedure": "function",
+        "method": "function",
+        "class": "class",
+        "when": "if",
+        "if": "if",
+        "while": "while",
+        "loop": "while",
+        "repeat": "for",
+        "for": "for",
+        "try": "try",
+        "using": "with",
+        "with": "with",
+        "match": "match",
+    }
+    _IF_BRANCHES = {"otherwise", "else", "elseif", "otherwiseif", "elif"}
+    _TRY_BRANCHES = {"catch", "except", "finally"}
+    _CASE_BRANCHES = {"case", "default"}
+
+    def __init__(self, grammar_file: str | Path | None = None) -> None:
+        self.grammar = Grammar.load(grammar_file)
 
     def format(self, source: str) -> str:
-        ppy_lines = source.splitlines()
-        if not ppy_lines:
+        if not source.splitlines():
             return ""
-
-        replacements_by_line: Dict[int, List[_Replacement]] = {}
-
+        canonical = self._canonicalize(source)
         try:
-            tokens = tokenize.generate_tokens(io.StringIO(source).readline)
-        except tokenize.TokenError as exc:
-            raise FormatterError(f"Tokenization error: {exc}") from exc
+            SyntaxParser(self.grammar).parse(canonical)
+        except TranspilerError as exc:
+            raise FormatterError(
+                exc.message,
+                line=exc.location.line if exc.location else None,
+                column=exc.location.column if exc.location else 1,
+                source_line=exc.location.source_line if exc.location else None,
+            ) from exc
 
-        for token in tokens:
-            if token.type != tokenize.NAME:
+        output: list[str] = []
+        stack: list[_FormatFrame] = []
+        protected_lines = multiline_string_continuation_lines(canonical)
+        bracket_depth = 0
+        for line_number, original in enumerate(canonical.splitlines(), start=1):
+            if line_number in protected_lines:
+                output.append(original)
+                continue
+            stripped = original.strip()
+            if not stripped:
+                output.append("")
+                continue
+            if stripped.startswith("#"):
+                output.append(self._indent(self._current_indent(stack), stripped))
                 continue
 
-            original = token.string
-            canonical = self._case_lookup.get(original.lower())
-            if canonical and canonical != original:
-                replacements_by_line.setdefault(token.start[0], []).append(
-                    _Replacement(token.start[1], token.end[1], canonical)
+            was_continuation = bracket_depth > 0
+            bracket_depth = max(0, bracket_depth + self._bracket_delta(stripped))
+            if was_continuation:
+                extra = 0 if stripped.startswith((")", "]", "}")) else 1
+                output.append(
+                    self._indent(self._current_indent(stack) + extra, stripped)
                 )
-
-        output_lines: List[str] = []
-        indent_level = 0
-        indent_unit = "    "
-
-        for idx, original_line in enumerate(ppy_lines, start=1):
-            raw = original_line.rstrip()
-            stripped = raw.strip()
-
-            if not stripped:
-                output_lines.append("")
                 continue
 
-            line = self._apply_replacements(raw, replacements_by_line.get(idx, []))
-            stripped = line.strip()
-
-            if not stripped:
-                output_lines.append("")
+            first, second = self._first_two_words(stripped)
+            lowered = first.casefold()
+            if lowered == "end":
+                if stack:
+                    frame = stack.pop()
+                    output.append(self._indent(frame.indent, stripped))
+                else:
+                    output.append(stripped)
                 continue
 
-            first_word = stripped.split()[0] if stripped else ""
-            canonical_word = self._case_lookup.get(first_word.lower(), first_word)
-
-            if canonical_word == "End":
-                indent_level = max(indent_level - 1, 0)
-                output_lines.append(f"{indent_unit * indent_level}{stripped}")
+            if lowered in self._IF_BRANCHES or lowered in self._TRY_BRANCHES:
+                if (
+                    stack
+                    and stack[-1].kind == "match"
+                    and lowered in {"otherwise", "else"}
+                ):
+                    frame = stack[-1]
+                    output.append(self._indent(frame.indent + 1, stripped))
+                    frame.body_indent = frame.indent + 2
+                elif stack:
+                    frame = stack[-1]
+                    output.append(self._indent(frame.indent, stripped))
+                    frame.body_indent = frame.indent + 1
+                else:
+                    output.append(stripped)
                 continue
 
-            if canonical_word in _MIDDLE_BLOCK_KEYWORDS:
-                align = max(indent_level - 1, 0)
-                output_lines.append(f"{indent_unit * align}{stripped}")
+            if lowered in self._CASE_BRANCHES:
+                if stack:
+                    frame = stack[-1]
+                    output.append(self._indent(frame.indent + 1, stripped))
+                    frame.body_indent = frame.indent + 2
+                else:
+                    output.append(stripped)
                 continue
 
-            output_lines.append(f"{indent_unit * indent_level}{stripped}")
+            indent = self._current_indent(stack)
+            output.append(self._indent(indent, stripped))
+            opener = self._OPENERS.get(lowered)
+            if lowered == "async" and second.casefold() in {
+                "function",
+                "func",
+                "define",
+                "def",
+                "procedure",
+                "method",
+            }:
+                opener = "function"
+            if opener:
+                stack.append(_FormatFrame(opener, indent, indent + 1))
 
-            if canonical_word in _BLOCK_OPENERS:
-                indent_level += 1
+        return "\n".join(output).rstrip() + "\n"
 
-        return "\n".join(output_lines).rstrip() + "\n"
+    def _canonicalize(self, source: str) -> str:
+        lines = source.splitlines()
+        replacements: dict[int, list[_Replacement]] = {}
+        try:
+            tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
+        except (tokenize.TokenError, IndentationError) as exc:
+            raise FormatterError(f"Tokenization failed: {exc}") from exc
+
+        previous_significant: tokenize.TokenInfo | None = None
+        for token in tokens:
+            if token.type == tokenize.NAME:
+                after_dot = (
+                    previous_significant is not None
+                    and previous_significant.type == tokenize.OP
+                    and previous_significant.string == "."
+                )
+                canonical = self.grammar.canonical(token.string)
+                if canonical and not after_dot and canonical != token.string:
+                    replacements.setdefault(token.start[0], []).append(
+                        _Replacement(token.start[1], token.end[1], canonical)
+                    )
+            if token.type not in {
+                tokenize.ENCODING,
+                tokenize.ENDMARKER,
+                tokenize.INDENT,
+                tokenize.DEDENT,
+                tokenize.NEWLINE,
+                tokenize.NL,
+                tokenize.COMMENT,
+            }:
+                previous_significant = token
+
+        output = []
+        for number, line in enumerate(lines, start=1):
+            output.append(self._apply(line, replacements.get(number, [])))
+        return "\n".join(output)
 
     @staticmethod
-    def _apply_replacements(
-        line: str,
-        replacements: List[_Replacement] | None,
-    ) -> str:
+    def _apply(line: str, replacements: Sequence[_Replacement]) -> str:
         if not replacements:
             return line
-
-        replacements = sorted(replacements, key=lambda r: r.start)
-        parts: List[str] = []
+        parts: list[str] = []
         last = 0
-        for repl in replacements:
-            parts.append(line[last : repl.start])
-            parts.append(repl.text)
-            last = repl.end
+        for replacement in sorted(replacements, key=lambda item: item.start):
+            parts.append(line[last : replacement.start])
+            parts.append(replacement.text)
+            last = replacement.end
         parts.append(line[last:])
         return "".join(parts)
 
-    def format_file(self, path: str | Path) -> None:
+    @staticmethod
+    def _first_two_words(line: str) -> tuple[str, str]:
+        words = line.split()
+        first = words[0].rstrip(":") if words else ""
+        second = words[1].rstrip(":") if len(words) > 1 else ""
+        return first, second
+
+    @staticmethod
+    def _current_indent(stack: Sequence[_FormatFrame]) -> int:
+        return stack[-1].body_indent if stack else 0
+
+    @staticmethod
+    def _indent(level: int, line: str) -> str:
+        return f"{'    ' * level}{line}" if line else ""
+
+    @staticmethod
+    def _bracket_delta(line: str) -> int:
+        quote: str | None = None
+        escaped = False
+        delta = 0
+        for char in line:
+            if quote is not None:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == quote:
+                    quote = None
+                continue
+            if char in {"'", '"'}:
+                quote = char
+            elif char == "#":
+                break
+            elif char in "([{":
+                delta += 1
+            elif char in ")]}":
+                delta -= 1
+        return delta
+
+    def format_file(self, path: str | Path) -> bool:
         target = Path(path)
         source = target.read_text(encoding="utf-8")
         formatted = self.format(source)
-        target.write_text(formatted, encoding="utf-8")
+        if formatted == source:
+            return False
+        target.write_text(formatted, encoding="utf-8", newline="\n")
+        return True
+
+
+__all__ = ["FormatterError", "PsuedoPYFormatter"]
