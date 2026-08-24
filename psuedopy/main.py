@@ -20,7 +20,7 @@ def run_ppy_file(
     debug: bool = False,
     color: bool | None = None,
 ) -> None:
-    path = _source_path(file_path)
+    path = _source_path(file_path, allowed={".ppy", ".cppy"})
     compiler = Compiler(grammar_file)
 
     if path.suffix.casefold() == ".cppy":
@@ -65,9 +65,14 @@ def compile_ppy_file(
     *,
     grammar_file: str | Path | None = None,
 ) -> Path:
-    path = _source_path(input_path)
+    path = _source_path(input_path, allowed={".ppy"})
     source = _read_source(path)
-    output = Path(output_path) if output_path else path.with_suffix(".cppy")
+    output = _output_path(
+        output_path,
+        default=path.with_suffix(".cppy"),
+        expected_suffix=".cppy",
+        source=path,
+    )
     compiler = Compiler(grammar_file)
     try:
         result = compiler.write_compiled(source, output, filename=str(path))
@@ -87,9 +92,14 @@ def transpile_ppy_file(
     *,
     grammar_file: str | Path | None = None,
 ) -> Path:
-    path = _source_path(input_path)
+    path = _source_path(input_path, allowed={".ppy"})
     source = _read_source(path)
-    output = Path(output_path) if output_path else path.with_suffix(".py")
+    output = _output_path(
+        output_path,
+        default=path.with_suffix(".py"),
+        expected_suffix=".py",
+        source=path,
+    )
     compiler = Compiler(grammar_file)
     try:
         translated = compiler.transpile(source)
@@ -112,7 +122,7 @@ def format_ppy_file(
     check: bool = False,
     grammar_file: str | Path | None = None,
 ) -> bool:
-    path = _source_path(file_path)
+    path = _source_path(file_path, allowed={".ppy"})
     source = _read_source(path)
     formatter = PsuedoPYFormatter(grammar_file)
     try:
@@ -145,7 +155,7 @@ def check_ppy_file(
     *,
     grammar_file: str | Path | None = None,
 ) -> None:
-    path = _source_path(file_path)
+    path = _source_path(file_path, allowed={".ppy"})
     source = _read_source(path)
     compiler = Compiler(grammar_file)
     translated = None
@@ -202,13 +212,24 @@ def _run_compiled(
         raise SystemExit(1) from exc
 
 
-def _source_path(file_path: str) -> Path:
+def _source_path(file_path: str, *, allowed: set[str] | None = None) -> Path:
     path = Path(file_path).expanduser()
     if not path.exists():
         print(f"Error: File '{file_path}' not found.", file=sys.stderr)
         raise SystemExit(2)
     if not path.is_file():
         print(f"Error: '{file_path}' is not a file.", file=sys.stderr)
+        raise SystemExit(2)
+    if allowed is not None and path.suffix.casefold() not in allowed:
+        expected = " or ".join(sorted(allowed))
+        message = (
+            f"Error: '{file_path}' is not a supported PsuedoPY file; "
+            f"expected {expected}."
+        )
+        print(
+            message,
+            file=sys.stderr,
+        )
         raise SystemExit(2)
     return path.resolve()
 
@@ -219,6 +240,27 @@ def _read_source(path: Path) -> str:
     except (OSError, UnicodeError) as exc:
         print(f"Error reading '{path}': {exc}", file=sys.stderr)
         raise SystemExit(2) from exc
+
+
+def _output_path(
+    requested: str | None,
+    *,
+    default: Path,
+    expected_suffix: str,
+    source: Path,
+) -> Path:
+    output = Path(requested).expanduser() if requested else default
+    output = output.resolve()
+    if output.suffix.casefold() != expected_suffix:
+        print(
+            f"Error: Output file must use the {expected_suffix} extension.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    if output == source.resolve():
+        print("Error: Output file cannot overwrite the .ppy source.", file=sys.stderr)
+        raise SystemExit(2)
+    return output
 
 
 @contextmanager

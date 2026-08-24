@@ -47,6 +47,11 @@ class Compiler:
             original_line = translated.source_map.original_line_no(generated_line)
             source_line = translated.source_map.original_source_line(generated_line)
             message = exc.msg if isinstance(exc, SyntaxError) else str(exc)
+            if original_line <= 0:
+                raise CompilerError(
+                    f"Internal generated Python is invalid on generated line "
+                    f"{generated_line}: {message}"
+                ) from exc
             raise CompilerError(
                 f"Generated Python is invalid: {message}",
                 line=original_line,

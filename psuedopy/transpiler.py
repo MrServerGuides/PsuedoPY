@@ -32,7 +32,11 @@ class Transpiler:
         parsed = self.parser.parse(source, allow_incomplete=allow_incomplete)
         original_lines = source.splitlines() or [""]
 
-        headers = []
+        headers = [
+            "from __future__ import annotations",
+            "from typing import NoReturn as __PpyNever",
+            "",
+        ]
         helper_imports = []
         if "inclusive_range" in parsed.required_helpers:
             helper_imports.append("inclusive_range as __ppy_inclusive_range")
@@ -41,15 +45,23 @@ class Transpiler:
         if helper_imports:
             headers.append("from psuedopy.runtime import " + ", ".join(helper_imports))
             headers.append("")
+        if "protocol" in parsed.required_helpers:
+            headers.append("from typing import Protocol as __PpyProtocol")
+            headers.append("")
+        if "enum" in parsed.required_helpers:
+            headers.append("from enum import Enum as __PpyEnum")
+            headers.append("")
 
-        generated_lines = headers + [line.python for line in parsed.lines]
-        mapping = {}
-        if headers:
-            mapping[1] = 1
-            mapping[2] = 1
-        offset = len(headers)
-        for index, generated in enumerate(parsed.lines, start=1):
-            mapping[index + offset] = generated.source_line
+        generated_lines = list(headers)
+        mapping = {index: 0 for index in range(1, len(headers) + 1)}
+        for generated in parsed.lines:
+            physical = generated.python.split("\n")
+            source_end = generated.source_end or generated.source_line
+            for offset, line in enumerate(physical):
+                generated_lines.append(line)
+                mapping[len(generated_lines)] = min(
+                    generated.source_line + offset, source_end
+                )
 
         python_code = "\n".join(generated_lines)
         source_map = SourceMap(

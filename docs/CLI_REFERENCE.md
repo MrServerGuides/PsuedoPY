@@ -1,6 +1,6 @@
 # Command-line reference
 
-The primary executable is `psuedopy`; `pseudopy` and `ppyx` are aliases.
+The recommended short executable is `ppyx`; `psuedopy` and `pseudopy` are aliases.
 
 ## Global options
 
@@ -24,6 +24,7 @@ psuedopy run program.ppy -- first-argument second-argument
 ```
 
 Program arguments are available through `sys.argv` after importing `sys`.
+`run` accepts only `.ppy` and `.cppy`; `.py` source is deliberately rejected.
 
 ## `check`
 
@@ -58,6 +59,8 @@ psuedopy transpile program.ppy -o generated/program.py
 
 Generated files may import `psuedopy.runtime` for inclusive or fixed-count repeat
 helpers, so the package must remain installed.
+This is an explicit backend-inspection/export command. Generated `.py` is never an
+accepted `run` input.
 
 ## `compile`
 

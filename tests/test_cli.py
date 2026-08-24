@@ -194,7 +194,7 @@ class TestVersionFlag:
             main()
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
-        assert "1.0.0" in captured.out
+        assert "2.0.0" in captured.out
 
 
 class TestHelpFlag:
@@ -216,4 +216,4 @@ def test_python_module_entrypoint(monkeypatch, capsys):
     with pytest.raises(SystemExit) as exc_info:
         runpy.run_module("psuedopy", run_name="__main__")
     assert exc_info.value.code == 0
-    assert "1.0.0" in capsys.readouterr().out
+    assert "2.0.0" in capsys.readouterr().out

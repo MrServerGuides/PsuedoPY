@@ -1,8 +1,8 @@
 # PsuedoPY
 
-PsuedoPY is an executable pseudocode programming language with direct access to
-Python's standard library and package ecosystem. It is designed for learners who
-want readable `End`-based blocks without giving up real-world programming tools.
+PsuedoPY is a typed, executable pseudocode programming language with a Python
+backend. It combines readable `End` blocks, TypeScript-inspired types, selected
+C++ conveniences, and explicit access to Python's standard library and packages.
 
 ```psuedopy
 Function classify(score)
@@ -28,11 +28,15 @@ attributes are preserved.
 ## Highlights
 
 - Explicit `End` blocks with automatic generated indentation
-- Variables, constants, functions, classes, async functions, and generators
+- Logical multiline expressions with accurate physical-line diagnostics
+- Typed variables/functions, aliases, optional parameters, and generic annotations
+- Classes, interfaces, enums, constructors, inheritance, and static members
 - `When`, `ElseIf`, `Otherwise`, `While`, and three forms of `Repeat`
-- `Try`, `Catch`, `Finally`, `Using`, `Match`, `Case`, and `Default`
+- `ForEach`, C-style `For`, `Switch`, pattern matching, and exception handling
 - Friendly operators such as `And`, `Or`, `Not`, `Div`, `Mod`, `Pow`, and `<>`
+- `&&`, `||`, `!`, `++`, `--`, arrows, ternaries, `??`, braces, and `//` comments
 - Beginner-friendly built-ins such as `Text`, `Ask`, `Length`, `Integer`, and `Sum`
+- Scope-aware names: imports such as `decimal.Decimal` never collide with aliases
 - Python modules and PyPI packages through normal import syntax
 - Source-mapped diagnostics that point back to `.ppy` lines
 - Persistent REPL with expression output and reliable multi-line blocks
@@ -56,7 +60,8 @@ python -m pip install -e .
 psuedopy --version
 ```
 
-The command aliases `pseudopy` and `ppyx` are also installed.
+The short command `ppyx` is recommended for daily use. The aliases `psuedopy` and
+`pseudopy` are installed as well.
 
 ## First program
 
@@ -69,6 +74,31 @@ Text("Hello, " + name + "!")
 Repeat number = 1 To 3
     Text("Count " + String(number))
 End
+```
+
+Types and modern expressions remain readable:
+
+```psuedopy
+Type Identifier = Integer | String
+
+Interface Named
+    Field name: String
+End
+
+Class Student
+    Constructor(name: String, scores: Integer[])
+        Set This.name To name
+        Set This.scores To scores
+    End
+
+    Function average(This) Returns Decimal
+        Return Sum(This.scores) / Length(This.scores)
+    End
+End
+
+Let label = (score: Integer) => score >= 75 ? "passed" : "retry"
+Let student = New Student("Ada", [92, 88, 95])
+Text(student.name + ": " + label(Integer(student.average())))
 ```
 
 Run it:
@@ -135,6 +165,9 @@ Text(output.resolve())
 
 PsuedoPY programs have the same permissions as the Python process that runs them.
 They are not sandboxed. Only run trusted programs and only install trusted packages.
+The `run` command accepts only `.ppy` and integrity-checked `.cppy` inputs; it does
+not execute `.py` source files. Use the explicit `transpile` command only when you
+need to inspect backend output.
 
 ## Documentation
 
@@ -161,7 +194,7 @@ installs the built wheel to ensure packaged grammar resources are present.
 
 ## Project status
 
-Version 1.0 defines the stable core language and `.cppy` format version 2. See
+Version 2.0 defines the typed/modern language surface and `.cppy` format version 2. See
 [CHANGELOG.md](CHANGELOG.md) for release details. The historical project spelling
 `PsuedoPY` is retained as the official brand; the correctly spelled `pseudopy`
 command alias is provided for convenience.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import re
 import tokenize
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -8,7 +9,11 @@ from pathlib import Path
 
 from psuedopy.errors import FormatterError, TranspilerError
 from psuedopy.grammar import Grammar
-from psuedopy.parser import SyntaxParser, multiline_string_continuation_lines
+from psuedopy.parser import (
+    SyntaxParser,
+    multiline_string_continuation_lines,
+    normalize_surface_syntax,
+)
 
 
 @dataclass(frozen=True)
@@ -35,17 +40,22 @@ class PsuedoPYFormatter:
         "def": "function",
         "procedure": "function",
         "method": "function",
+        "constructor": "function",
         "class": "class",
+        "interface": "interface",
+        "enum": "enum",
         "when": "if",
         "if": "if",
         "while": "while",
         "loop": "while",
         "repeat": "for",
         "for": "for",
+        "foreach": "for",
         "try": "try",
         "using": "with",
         "with": "with",
         "match": "match",
+        "switch": "match",
     }
     _IF_BRANCHES = {"otherwise", "else", "elseif", "otherwiseif", "elif"}
     _TRY_BRANCHES = {"catch", "except", "finally"}
@@ -57,7 +67,7 @@ class PsuedoPYFormatter:
     def format(self, source: str) -> str:
         if not source.splitlines():
             return ""
-        canonical = self._canonicalize(source)
+        canonical = normalize_surface_syntax(self._canonicalize(source))
         try:
             SyntaxParser(self.grammar).parse(canonical)
         except TranspilerError as exc:
@@ -95,6 +105,19 @@ class PsuedoPYFormatter:
 
             first, second = self._first_two_words(stripped)
             lowered = first.casefold()
+            if lowered in {"public", "private", "protected", "static"}:
+                words = stripped.split()
+                index = 0
+                while index < len(words) and words[index].casefold() in {
+                    "public",
+                    "private",
+                    "protected",
+                    "static",
+                }:
+                    index += 1
+                if index < len(words):
+                    lowered = words[index].casefold()
+                    second = words[index + 1] if index + 1 < len(words) else ""
             if lowered == "end":
                 if stack:
                     frame = stack.pop()
@@ -149,6 +172,12 @@ class PsuedoPYFormatter:
     def _canonicalize(self, source: str) -> str:
         lines = source.splitlines()
         replacements: dict[int, list[_Replacement]] = {}
+        shadowed = self._collect_shadowed_names(source)
+        import_lines = {
+            number
+            for number, line in enumerate(lines, start=1)
+            if re.match(r"^\s*(?:Import|Include|Use|From)\b", line, re.IGNORECASE)
+        }
         try:
             tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
         except (tokenize.TokenError, IndentationError) as exc:
@@ -163,7 +192,27 @@ class PsuedoPYFormatter:
                     and previous_significant.string == "."
                 )
                 canonical = self.grammar.canonical(token.string)
-                if canonical and not after_dot and canonical != token.string:
+                spec = self.grammar.resolve(token.string)
+                protected_import_name = bool(
+                    token.start[0] in import_lines
+                    and spec
+                    and spec.category not in {"import", "import_modifier"}
+                )
+                is_shadowed = bool(
+                    spec
+                    and token.string in shadowed
+                    and (
+                        spec.category in {"expression", "type"}
+                        or spec.python_target in {"print", "input"}
+                    )
+                )
+                if (
+                    canonical
+                    and not after_dot
+                    and not is_shadowed
+                    and not protected_import_name
+                    and canonical != token.string
+                ):
                     replacements.setdefault(token.start[0], []).append(
                         _Replacement(token.start[1], token.end[1], canonical)
                     )
@@ -184,6 +233,65 @@ class PsuedoPYFormatter:
         return "\n".join(output)
 
     @staticmethod
+    def _collect_shadowed_names(source: str) -> set[str]:
+        names: set[str] = set()
+        for line in source.splitlines():
+            stripped = line.strip()
+            declaration = re.match(
+                r"^(?:Let|Var|Declare|Const|Set|Field|Type)\s+([A-Za-z_]\w*)",
+                stripped,
+                re.IGNORECASE,
+            )
+            if declaration:
+                names.add(declaration.group(1))
+            callable_match = re.match(
+                r"^(?:Async\s+)?(?:Function|Func|Define|Def|Procedure|Method)\s+"
+                r"([A-Za-z_]\w*)\s*\((.*)\)",
+                stripped,
+                re.IGNORECASE,
+            )
+            if callable_match:
+                names.add(callable_match.group(1))
+                for parameter in callable_match.group(2).split(","):
+                    match = re.match(r"\s*[*]{0,2}([A-Za-z_]\w*)", parameter)
+                    if match:
+                        names.add(match.group(1))
+            named_type = re.match(
+                r"^(?:Class|Interface|Enum)\s+([A-Za-z_]\w*)",
+                stripped,
+                re.IGNORECASE,
+            )
+            if named_type:
+                names.add(named_type.group(1))
+            loop_target = re.match(
+                r"^(?:Repeat|ForEach)\s+([A-Za-z_]\w*)\s+(?:=|In\b)",
+                stripped,
+                re.IGNORECASE,
+            )
+            if not loop_target:
+                loop_target = re.match(
+                    r"^For\s*\(\s*(?:Let\s+|Var\s+)?([A-Za-z_]\w*)\s*=",
+                    stripped,
+                    re.IGNORECASE,
+                )
+            if loop_target:
+                names.add(loop_target.group(1))
+            if re.match(r"^(?:Import|Include|Use|From)\b", stripped, re.IGNORECASE):
+                aliases = re.findall(
+                    r"\bAs\s+([A-Za-z_]\w*)", stripped, flags=re.IGNORECASE
+                )
+                names.update(aliases)
+                from_import = re.match(
+                    r"^From\s+.+?\s+Import\s+(.+)$", stripped, re.IGNORECASE
+                )
+                if from_import:
+                    for item in from_import.group(1).split(","):
+                        imported = re.match(r"\s*([A-Za-z_]\w*)", item)
+                        if imported and not re.search(r"\bAs\b", item, re.IGNORECASE):
+                            names.add(imported.group(1))
+        return names
+
+    @staticmethod
     def _apply(line: str, replacements: Sequence[_Replacement]) -> str:
         if not replacements:
             return line
@@ -198,10 +306,12 @@ class PsuedoPYFormatter:
 
     @staticmethod
     def _first_two_words(line: str) -> tuple[str, str]:
-        words = line.split()
-        first = words[0].rstrip(":") if words else ""
-        second = words[1].rstrip(":") if len(words) > 1 else ""
-        return first, second
+        first = re.match(r"^([A-Za-z_]\w*)", line)
+        if not first:
+            return "", ""
+        remainder = line[first.end() :].lstrip()
+        second = re.match(r"^([A-Za-z_]\w*)", remainder)
+        return first.group(1), second.group(1) if second else ""
 
     @staticmethod
     def _current_indent(stack: Sequence[_FormatFrame]) -> int:

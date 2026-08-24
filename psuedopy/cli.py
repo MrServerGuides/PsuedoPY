@@ -19,9 +19,13 @@ from psuedopy.pkg_manager import PackageManager
 
 
 def build_parser() -> argparse.ArgumentParser:
+    invoked = Path(sys.argv[0]).stem.casefold()
+    program = invoked if invoked in {"ppyx", "psuedopy", "pseudopy"} else "ppyx"
     parser = argparse.ArgumentParser(
-        prog="psuedopy",
-        description="PsuedoPY — executable pseudocode with Python interoperability.",
+        prog=program,
+        description=(
+            "PsuedoPY - typed pseudocode with modern expressions and a Python backend."
+        ),
     )
     parser.add_argument(
         "-v", "--version", action="version", version=f"%(prog)s {__version__}"

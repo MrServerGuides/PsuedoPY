@@ -619,6 +619,161 @@
       "category": "expression",
       "canonical": "TypeOf",
       "description": "Return a value's type"
+    },
+    "Constructor": {
+      "python_target": "__init__",
+      "category": "declaration",
+      "canonical": "Constructor",
+      "blocks": true,
+      "description": "Class constructor declaration"
+    },
+    "Enum": {
+      "python_target": "enum",
+      "category": "declaration",
+      "canonical": "Enum",
+      "blocks": true,
+      "description": "Enumeration declaration"
+    },
+    "Extends": {
+      "python_target": "extends",
+      "category": "syntax_marker",
+      "canonical": "Extends",
+      "description": "Base class marker"
+    },
+    "Field": {
+      "python_target": "field",
+      "category": "declaration",
+      "canonical": "Field",
+      "description": "Typed class or interface field"
+    },
+    "ForEach": {
+      "python_target": "for",
+      "category": "control_flow",
+      "canonical": "ForEach",
+      "blocks": true,
+      "description": "Collection iteration loop"
+    },
+    "Interface": {
+      "python_target": "interface",
+      "category": "declaration",
+      "canonical": "Interface",
+      "blocks": true,
+      "description": "Structural interface declaration"
+    },
+    "New": {
+      "python_target": "",
+      "category": "operator",
+      "canonical": "New",
+      "description": "Construct a class instance"
+    },
+    "Returns": {
+      "python_target": "returns",
+      "category": "syntax_marker",
+      "canonical": "Returns",
+      "description": "Function return type marker"
+    },
+    "Switch": {
+      "python_target": "match",
+      "category": "control_flow",
+      "canonical": "Switch",
+      "blocks": true,
+      "description": "Pattern switch statement"
+    },
+    "Type": {
+      "python_target": "type",
+      "category": "declaration",
+      "canonical": "Type",
+      "description": "Type alias declaration"
+    },
+    "Any": {
+      "python_target": "object",
+      "category": "type",
+      "canonical": "Any",
+      "description": "Any value type"
+    },
+    "Array": {
+      "python_target": "list",
+      "category": "type",
+      "canonical": "Array",
+      "description": "Array type"
+    },
+    "List": {
+      "python_target": "list",
+      "category": "type",
+      "canonical": "List",
+      "description": "List type"
+    },
+    "Map": {
+      "python_target": "dict",
+      "category": "type",
+      "canonical": "Map",
+      "description": "Key/value map type"
+    },
+    "Never": {
+      "python_target": "__PpyNever",
+      "category": "type",
+      "canonical": "Never",
+      "description": "Function that never returns"
+    },
+    "Number": {
+      "python_target": "int | float",
+      "category": "type",
+      "canonical": "Number",
+      "description": "Integer or decimal numeric type"
+    },
+    "Tuple": {
+      "python_target": "tuple",
+      "category": "type",
+      "canonical": "Tuple",
+      "description": "Tuple type"
+    },
+    "Unknown": {
+      "python_target": "object",
+      "category": "type",
+      "canonical": "Unknown",
+      "description": "Unknown value type"
+    },
+    "Void": {
+      "python_target": "None",
+      "category": "type",
+      "canonical": "Void",
+      "description": "No return value type"
+    },
+    "Private": {
+      "python_target": "private",
+      "category": "modifier",
+      "canonical": "Private",
+      "description": "Private member documentation modifier"
+    },
+    "Protected": {
+      "python_target": "protected",
+      "category": "modifier",
+      "canonical": "Protected",
+      "description": "Protected member documentation modifier"
+    },
+    "Public": {
+      "python_target": "public",
+      "category": "modifier",
+      "canonical": "Public",
+      "description": "Public member documentation modifier"
+    },
+    "Static": {
+      "python_target": "static",
+      "category": "modifier",
+      "canonical": "Static",
+      "description": "Static class member modifier"
+    },
+    "Optional": {
+      "python_target": "optional",
+      "category": "type",
+      "canonical": "Optional",
+      "description": "Optional value type"
+    },
+    "Record": {
+      "python_target": "dict",
+      "category": "type",
+      "canonical": "Record",
+      "description": "Typed key/value record"
     }
   },
   "metadata": {
@@ -633,6 +788,8 @@
       "import_modifier": "Import modifiers (as)",
       "literal": "Literal values (true, false, none, self, etc.)",
       "expression": "Friendly built-ins and expression-level aliases",
+      "type": "Type annotation names",
+      "modifier": "Class and interface member modifiers",
       "syntax_marker": "Syntax markers removed in translation (let, set, var, declare, const, then, end)"
     }
   }

@@ -1,0 +1,37 @@
+Type Identifier = Integer | String
+
+Interface Named
+    Field name: String
+End
+
+Enum Status
+    Const PASSED = "passed"
+    Const RETRY = "retry"
+End
+
+Class Student<T>
+    Constructor(id: T, name: String, scores: Integer[])
+        Set This.id To id
+        Set This.name To name
+        Set This.scores To scores
+    End
+
+    Function average(This) Returns Decimal
+        Return Sum(This.scores) / Length(This.scores)
+    End
+
+    Public Static Function classify(score: Number) Returns String
+        Return score >= 75 ? Status.PASSED.value : Status.RETRY.value
+    End
+End
+
+Let students: Array<Student<Identifier>> = [
+    New Student(1, "Ada", [92, 88, 95]),
+    New Student("grace", "Grace", [100, 97, 99]),
+]
+
+Repeat (Let index = 0; index < Length(students); index++)
+    Let student = students[index]
+    Let result = Student.classify(student.average())
+    Text(student.name + ": " + result)
+End

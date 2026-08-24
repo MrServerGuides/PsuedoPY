@@ -4,12 +4,12 @@ Import json
 Const OUTPUT_FILE = "psuedopy-demo.json"
 
 Class Student
-    Function __init__(This, name, scores)
-        This.name = name
-        This.scores = scores
+    Constructor(name: String, scores: Integer[])
+        Set This.name To name
+        Set This.scores To scores
     End
 
-    Function average(This)
+    Function average(This) Returns Decimal
         When Not This.scores
             Return 0
         End
@@ -18,8 +18,8 @@ Class Student
 End
 
 Let students = [
-    Student("Ada", [92, 88, 95]),
-    Student("Grace", [100, 97, 99]),
+    New Student("Ada", [92, 88, 95]),
+    New Student("Grace", [100, 97, 99]),
 ]
 Let report = {}
 
@@ -33,7 +33,7 @@ Repeat student In students
         Default
             Let rating = "developing"
     End
-    report[student.name] = {"average": average, "rating": rating}
+    Set report[student.name] To {"average": average, "rating": rating}
 End
 
 Try

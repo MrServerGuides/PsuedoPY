@@ -16,10 +16,13 @@ developer tools.
 Grammar loader -------- keywords.json / optional custom grammar
         |
         v
-Structural parser ----- validates End blocks, branches, scopes, constants
+Surface normalizer ---- comments, braces, semicolons, logical multiline statements
         |
         v
-Expression translator - token-aware aliases; preserves strings/comments/attributes
+Structural parser ----- validates End blocks, branches, scopes, constants, types
+        |
+        v
+Expression translator - token-aware, binding-aware aliases and modern operators
         |
         v
 Generated Python + source map
@@ -48,14 +51,20 @@ Generated Python + source map
 
 ## Structural parser
 
-The parser maintains an explicit stack of block frames. Frames record their opener,
+The parser first groups physical input into logical statements without losing source
+spans. It then maintains an explicit stack of block frames. Frames record their opener,
 generated indentation, current branch state, and lexical scope. Middle branches are
 validated against the active frame, so `Otherwise` cannot follow `Try`, `Catch`
 cannot follow `Finally`, and `Case` cannot appear outside `Match`.
 
-Every meaningful source line produces one generated line. Runtime-helper imports add
-a small mapped prefix when required. This predictable relationship lets runtime and
-compile errors map back to the original source.
+A logical statement may produce one or more generated lines. Every generated line is
+mapped to its originating physical `.ppy` line; internal future/runtime/type imports
+are marked as generated rather than attributed to user source.
+
+Expression rewriting consults active bindings. Friendly names such as `Decimal` are
+translated only when they have not been imported, declared, or introduced as a
+parameter in the active scope. Strings, comments, dictionary keys, and attributes
+remain opaque.
 
 ## Grammar
 
@@ -90,6 +99,6 @@ but packages themselves remain third-party executable code.
 ## Compatibility policy
 
 - Python 3.10 and newer are supported.
-- Language 1.x keeps documented source syntax backward compatible.
+- Language 2.x keeps documented source syntax backward compatible.
 - `.cppy` readers reject unknown format versions.
 - Breaking language or artifact changes require a major version bump.

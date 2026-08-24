@@ -73,7 +73,11 @@ def test_invalid_configuration_is_rejected(
 def test_custom_simple_grammar(tmp_path: Path) -> None:
     grammar = tmp_path / "grammar.json"
     grammar.write_text(json.dumps({"Say": "print"}), encoding="utf-8")
-    assert Transpiler(grammar).translate('Say("hello")').python_code == 'print("hello")'
+    assert (
+        Transpiler(grammar)
+        .translate('Say("hello")')
+        .python_code.endswith('print("hello")')
+    )
 
 
 def test_custom_structured_grammar(tmp_path: Path) -> None:
@@ -94,7 +98,9 @@ def test_custom_structured_grammar(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert (
-        Transpiler(grammar).translate('Speak("hello")').python_code == 'print("hello")'
+        Transpiler(grammar)
+        .translate('Speak("hello")')
+        .python_code.endswith('print("hello")')
     )
 
 

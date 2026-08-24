@@ -44,7 +44,9 @@ def test_repeat_times() -> None:
 
 
 def test_from_import_translates_both_keywords() -> None:
-    assert translate("From pathlib Import Path As P") == "from pathlib import Path as P"
+    assert translate("From pathlib Import Path As P").endswith(
+        "from pathlib import Path as P"
+    )
 
 
 def test_case_insensitive_keywords_and_friendly_builtins() -> None:

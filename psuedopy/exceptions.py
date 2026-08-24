@@ -66,14 +66,23 @@ def print_ppy_error(
         source_line = (
             source_map.original_source_line(generated_line) if source_map else exc.text
         )
-        _print_location(
-            filename or exc.filename,
-            original_line,
-            exc.offset or 1,
-            source_line,
-            enabled,
-            target,
-        )
+        if original_line <= 0 and source_map is not None:
+            _print_generated_location(
+                filename or exc.filename,
+                generated_line,
+                source_map.generated_source_line(generated_line),
+                enabled,
+                target,
+            )
+        else:
+            _print_location(
+                filename or exc.filename,
+                original_line,
+                exc.offset or 1,
+                source_line,
+                enabled,
+                target,
+            )
         shown = True
     elif source_map is not None:
         frames = traceback.extract_tb(exc.__traceback__)
@@ -93,14 +102,23 @@ def print_ppy_error(
         if selected is not None:
             original_line = source_map.original_line_no(selected.lineno)
             source_line = source_map.original_source_line(selected.lineno)
-            _print_location(
-                filename or selected.filename,
-                original_line,
-                1,
-                source_line,
-                enabled,
-                target,
-            )
+            if original_line <= 0:
+                _print_generated_location(
+                    filename or selected.filename,
+                    selected.lineno,
+                    source_map.generated_source_line(selected.lineno),
+                    enabled,
+                    target,
+                )
+            else:
+                _print_location(
+                    filename or selected.filename,
+                    original_line,
+                    1,
+                    source_line,
+                    enabled,
+                    target,
+                )
             shown = True
 
     if not shown and filename:
@@ -131,3 +149,16 @@ def _print_location(
                 f"    {' ' * (caret_column - 1)}{_paint('^', '31;1', color)}",
                 file=stream,
             )
+
+
+def _print_generated_location(
+    filename: str | None,
+    line: int,
+    source_line: str | None,
+    color: bool,
+    stream: TextIO,
+) -> None:
+    display_name = filename or "<generated>"
+    print(f'  Generated Python for "{display_name}", line {line}', file=stream)
+    if source_line is not None:
+        print(f"    {_paint(source_line.rstrip(), '33', color)}", file=stream)

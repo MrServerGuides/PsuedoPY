@@ -1,0 +1,36 @@
+From decimal Import Decimal, getcontext
+From pathlib Import Path
+
+Function calculate_pi(digits: Integer) Returns Decimal
+    Set getcontext().prec To digits + 20
+
+    Let constant = Decimal(426880) * Decimal(10005).sqrt()
+    Let multiplier = 1
+    Let linear = 13591409
+    Let exponential = 1
+    Let factor = 6
+    Let total = Decimal(linear)
+    Let iterations = digits Div 14 + 1
+
+    Repeat index = 1 To iterations
+        Set multiplier To (
+            multiplier * (factor Pow 3 - 16 * factor)
+        ) Div (index Pow 3)
+        Set linear To linear + 545140134
+        Set exponential To exponential * -262537412640768000
+        Set total To total + Decimal(multiplier * linear) / Decimal(exponential)
+        Set factor To factor + 12
+    End
+
+    Return constant / total
+End
+
+Let digits = Integer(Ask("Digits (recommended: 1000-10000): "))
+When digits < 1 Or digits > 100000
+    Raise ValueError("Choose between 1 and 100000 digits on ordinary hardware")
+End
+
+Let result = format(calculate_pi(digits), "." + String(digits) + "f")
+Let output = Path("pi-" + String(digits) + "-digits.txt")
+output.write_text(result, encoding="utf-8")
+Text("Saved " + String(Length(result)) + " characters to " + String(output.resolve()))

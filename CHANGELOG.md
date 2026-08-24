@@ -2,6 +2,35 @@
 
 All notable changes are documented here. This project follows semantic versioning.
 
+## 2.0.0 - 2026-08-24
+
+### Added
+
+- Logical multiline statements with physical-line source mapping
+- Scope-aware identifiers so imports and declarations can shadow friendly built-ins
+- Typed declarations, typed returns, optional parameters, type aliases, and generics
+- `Interface`, `Enum`, `Field`, `Constructor`, `New`, and `Extends`
+- TypeScript-style arrays, generic collections, arrow functions, `??`, and ternaries
+- C++-style `&&`, `||`, `!`, `++`, `--`, `//` comments, braces, and `For` loops
+- `Public`, `Private`, `Protected`, and executable `Static` member modifiers
+- `Switch` and `ForEach` control-flow forms
+
+### Changed
+
+- `.ppy` import and declaration bindings now take precedence over friendly aliases
+- Generated code uses postponed annotations for forward and generic type names
+- The formatter understands bindings, multiline statements, braces, and new blocks
+- `run`, `check`, `format`, and `compile` validate PsuedoPY file extensions
+- Direct assignments require `Let`, `Var`, `Declare`, `Const`, or `Set`
+- Internal generated lines are distinguished from original source in diagnostics
+
+### Fixed
+
+- `Div` and `Pow` now translate correctly across multiline expressions
+- `From decimal Import Decimal` no longer becomes the built-in float conversion
+- Multiline strings remain opaque to comment, keyword, and brace processing
+- Loop, function-parameter, import, class, and exception bindings respect scope
+
 ## 1.0.0 - 2026-08-24
 
 ### Added
